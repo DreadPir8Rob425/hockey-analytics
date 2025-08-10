@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# data migration files
+data-migrations/.env
+data-migrations/venv/
+data-migrations/__pycache__/
+*.pyc
+*.pyo
+*.csv
