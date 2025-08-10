@@ -156,7 +156,7 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
     }
   }, [filters]);
 
-  // Filter shot data based on current filters
+  // Filter and normalize shot data for consistent analytics view
   const filteredData = useMemo(() => {
     return shotData.filter(shot => {
       if (filters.teams && filters.teams.length > 0 && !filters.teams.includes(shot.team_code)) {
@@ -172,6 +172,45 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
         return false;
       }
       return true;
+    }).map(shot => {
+      // Normalize coordinates so all shots appear to attack the same goal (right side)
+      // In hockey, teams switch sides each period, but for analytics we want consistency
+      const normalizedShot = { ...shot };
+      
+      // CORRECTED LOGIC based on debug output:
+      // The coordinate system shows:
+      // - Positive X = attacking RIGHT goal
+      // - Negative X = attacking LEFT goal
+      // We want ALL shots normalized to appear as attacking the RIGHT goal (positive X)
+      
+      // From the debug output we can see:
+      // - When DAL is HOME in period 3: negative X coords (attacking left) - need to flip
+      // - When DAL is AWAY in period 1: positive X coords (attacking right) - don't flip
+      // - When DAL is AWAY in period 2: negative X coords (attacking left) - need to flip
+      
+      // Simple rule: if X coordinate is negative, the shot is attacking left goal, so flip it
+      let shouldFlip = shot.x_cord < 0;
+      
+      // Enhanced debug logging to understand the data
+      if (Math.random() < 0.02) { // Log ~2% of shots to understand patterns
+        console.log(`NORMALIZATION DEBUG:`);
+        console.log(`  Team: ${shot.team_code} (${shot.is_home_team ? 'HOME' : 'AWAY'})`);
+        console.log(`  Period: ${shot.period}`);
+        console.log(`  Original coords: (${shot.x_cord.toFixed(1)}, ${shot.y_cord.toFixed(1)})`);
+        console.log(`  Should flip: ${shouldFlip} (negative X = attacking left, needs flip)`);
+        
+        if (shouldFlip) {
+          console.log(`  New coords: (${(-shot.x_cord).toFixed(1)}, ${(-shot.y_cord).toFixed(1)})`);
+        }
+        console.log('---');
+      }
+      
+      if (shouldFlip) {
+        normalizedShot.x_cord = -shot.x_cord;  // Flip X coordinate (left-right)
+        normalizedShot.y_cord = -shot.y_cord;  // Flip Y coordinate (up-down)
+      }
+      
+      return normalizedShot;
     });
   }, [shotData, filters]);
 
@@ -684,6 +723,12 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Interactive Shot Map ({filteredData.length.toLocaleString()} shots)
           </h3>
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Normalized View (All shots attacking right)
+            </span>
+          </div>
         </div>
 
         {/* Filter Controls */}
