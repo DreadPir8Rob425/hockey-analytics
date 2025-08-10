@@ -14,24 +14,52 @@ const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 
 export async function GET() {
   try {
-    // Get a large sample of data to extract unique team codes from both home and away teams
-    const { data: shots, error } = await supabase
-      .from('nhl_shots_2024')
-      .select('home_team_code, away_team_code')
-      .limit(10000); // Use a large sample to ensure we get all teams
+    // Use a more reliable approach: Get distinct teams using multiple queries
+    // This eliminates the sampling issue that was causing inconsistent results
+    
+    const [homeTeamsResult, awayTeamsResult] = await Promise.all([
+      supabase
+        .from('nhl_shots_2024')
+        .select('team_code')
+        .not('team_code', 'is', null)
+        .limit(1000), // Get team_code from shots table directly
+      
+      supabase
+        .from('nhl_shots_2024')
+        .select('home_team_code, away_team_code')
+        .not('home_team_code', 'is', null)
+        .not('away_team_code', 'is', null)
+        .limit(5000) // Reasonable sample size
+    ]);
 
-    if (error) {
-      console.error('Supabase error:', error);
+    if (homeTeamsResult.error) {
+      console.error('Supabase error fetching team codes:', homeTeamsResult.error);
       return NextResponse.json(
-        { error: 'Failed to fetch teams', details: error.message },
+        { error: 'Failed to fetch teams', details: homeTeamsResult.error.message },
         { status: 500 }
       );
     }
 
-    // Extract unique team codes from both home and away
+    if (awayTeamsResult.error) {
+      console.error('Supabase error fetching home/away teams:', awayTeamsResult.error);
+      return NextResponse.json(
+        { error: 'Failed to fetch teams', details: awayTeamsResult.error.message },
+        { status: 500 }
+      );
+    }
+
+    // Extract unique team codes from multiple sources
     const allTeamsSet = new Set<string>();
     
-    shots?.forEach(shot => {
+    // Add teams from team_code column (shooting team)
+    homeTeamsResult.data?.forEach(shot => {
+      if (shot.team_code) {
+        allTeamsSet.add(shot.team_code);
+      }
+    });
+    
+    // Add teams from home_team_code and away_team_code columns
+    awayTeamsResult.data?.forEach(shot => {
       if (shot.home_team_code) {
         allTeamsSet.add(shot.home_team_code);
       }
@@ -42,6 +70,8 @@ export async function GET() {
 
     // Convert to array and sort alphabetically
     const sortedTeams = Array.from(allTeamsSet).sort();
+
+    console.log(`Teams API: Found ${sortedTeams.length} unique teams:`, sortedTeams);
 
     return NextResponse.json({
       teams: sortedTeams,

@@ -92,17 +92,26 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
   // Fetch available teams on component mount
   const fetchAvailableTeams = useCallback(async () => {
     try {
+      console.log('Fetching available teams...');
       const response = await fetch('/api/teams');
       const result = await response.json();
       
       if (response.ok) {
+        console.log(`Successfully fetched ${result.teams?.length || 0} teams:`, result.teams);
         // Teams are already sorted alphabetically from the API
-        setFilterOptions(prev => ({ ...prev, teams: result.teams }));
+        setFilterOptions(prev => ({ ...prev, teams: result.teams || [] }));
+        
+        // Log a warning if we get fewer teams than expected
+        if (result.teams && result.teams.length < 20) {
+          console.warn(`Only ${result.teams.length} teams loaded - this might indicate a data sampling issue`);
+        }
       } else {
-        console.error('Failed to fetch teams:', result.error);
+        console.error('Failed to fetch teams - API error:', result.error);
+        setError(`Failed to load teams: ${result.error}`);
       }
     } catch (err) {
-      console.error('Failed to fetch available teams:', err);
+      console.error('Failed to fetch available teams - network/parsing error:', err);
+      setError('Failed to connect to teams API');
     }
   }, []);
 
