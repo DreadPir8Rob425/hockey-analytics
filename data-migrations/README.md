@@ -13,6 +13,9 @@ data-migrations/
 │   ├── import_shots_to_supabase.py  # Environment-based import
 │   └── quick_import.py        # Quick import with user input
 ├── docs/                      # Documentation
+├── data/                      # Raw data files (CSV)
+├── create_shots_table.sql     # SQLite table schema
+├── create_shots_table_postgres.sql  # PostgreSQL/Supabase table schema
 └── README.md                  # This file
 ```
 
@@ -70,6 +73,20 @@ pip install pandas supabase numpy tqdm
 ### Required Data
 - NHL shots 2024 CSV file at: `data/shots_2024.csv` (included)
 - Supabase database with `nhl_shots_2024` table
+
+### Database Setup
+Use the provided SQL schema files to create the required table:
+
+**For Supabase (PostgreSQL):**
+```bash
+# Run this SQL in your Supabase SQL editor
+psql -f create_shots_table_postgres.sql
+```
+
+**For SQLite (local development):**
+```bash
+sqlite3 hockey.db < create_shots_table.sql
+```
 
 ### Supabase Configuration
 You need:
@@ -203,3 +220,20 @@ Example:
 - [Supabase Python Client](https://github.com/supabase-community/supabase-py)
 - [Pandas Documentation](https://pandas.pydata.org/docs/)
 - [NHL Data Schema](../docs/data-schema.md) (if available)
+
+## 🗄️ Database Schema Files
+
+### `create_shots_table.sql`
+- **Purpose**: SQLite table schema for local development
+- **Use Case**: Setting up local SQLite database for testing
+- **Features**: Complete table structure with all 150+ columns
+
+### `create_shots_table_postgres.sql` 
+- **Purpose**: PostgreSQL/Supabase table schema for production
+- **Use Case**: Setting up production Supabase database
+- **Features**: PostgreSQL-optimized schema with proper data types
+
+**Usage:**
+1. Copy the SQL content from the appropriate schema file
+2. Run it in your database management tool (Supabase SQL Editor, pgAdmin, etc.)
+3. Verify the `nhl_shots_2024` table is created with all expected columns
