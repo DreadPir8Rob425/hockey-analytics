@@ -1,6 +1,6 @@
 'use client';
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
 const mockTrendsData = [
   { month: 'Oct', goalsPerGame: 3.1, assistsPerGame: 4.2, totalGames: 124 },
@@ -58,7 +58,7 @@ const GameTrendsChart = () => {
             fill="#10b981"
             fillOpacity={0.6}
           />
-          <Line type="monotone" dataKey="totalGames" stroke="#f59e0b" strokeWidth={3} dot={{ fill: '#f59e0b', r: 4 }} />
+          {/* Line removed - using stacked areas only */}
         </AreaChart>
       </ResponsiveContainer>
     </div>

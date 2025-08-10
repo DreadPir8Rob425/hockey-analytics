@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { PlayerStats, TeamStats, GameEvent } from "@/types/hockey";
+import { PlayerStats, TeamStats } from "@/types/hockey";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -204,7 +204,7 @@ export function generateColorPalette(count: number): string[] {
 /**
  * Debounce function for search inputs
  */
-export function debounce<T extends (...args: any[]) => void>(
+export function debounce<T extends (...args: unknown[]) => void>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {

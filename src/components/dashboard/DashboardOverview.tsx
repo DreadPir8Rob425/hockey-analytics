@@ -5,6 +5,7 @@ import StatsCard from './StatsCard';
 import PlayerPerformanceChart from '../charts/PlayerPerformanceChart';
 import TeamComparisonChart from '../charts/TeamComparisonChart';
 import GameTrendsChart from '../charts/GameTrendsChart';
+import InteractiveHockeyHeatMap from '../charts/InteractiveHockeyHeatMap';
 
 interface DashboardStats {
   totalGames: number;
@@ -91,6 +92,9 @@ const DashboardOverview = () => {
         </h3>
         <GameTrendsChart />
       </div>
+
+      {/* Interactive Shot Heat Map - Full Width */}
+      <InteractiveHockeyHeatMap width={1000} height={600} />
 
       {/* Quick Actions */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">

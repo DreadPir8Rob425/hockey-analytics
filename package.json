@@ -9,12 +9,15 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.54.0",
     "@types/d3": "^7.4.3",
+    "@types/d3-hexbin": "^0.2.5",
     "@types/lodash": "^4.17.20",
     "@types/papaparse": "^5.3.16",
     "clsx": "^2.1.1",
     "csv-parser": "^3.2.0",
     "d3": "^7.9.0",
+    "d3-hexbin": "^0.2.2",
     "date-fns": "^4.1.0",
     "lodash": "^4.17.21",
     "next": "15.4.6",
