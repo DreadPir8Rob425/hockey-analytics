@@ -76,10 +76,10 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
     centerY: height / 2,
   }), [width, height]);
 
-  // Coordinate scaling functions
+  // Coordinate scaling functions - Half rink only (offensive zone)
   const xScale = useMemo(() => 
     d3.scaleLinear()
-      .domain([-100, 100]) // Full rink width
+      .domain([0, 100]) // Half rink width (attacking goal on right)
       .range([rinkDimensions.centerX - rinkDimensions.width / 2, rinkDimensions.centerX + rinkDimensions.width / 2])
   , [rinkDimensions]);
 
@@ -198,23 +198,7 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
       // - When DAL is AWAY in period 2: negative X coords (attacking left) - need to flip
       
       // Simple rule: if X coordinate is negative, the shot is attacking left goal, so flip it
-      let shouldFlip = shot.x_cord < 0;
-      
-      // Enhanced debug logging to understand the data
-      if (Math.random() < 0.02) { // Log ~2% of shots to understand patterns
-        console.log(`NORMALIZATION DEBUG:`);
-        console.log(`  Team: ${shot.team_code} (${shot.is_home_team ? 'HOME' : 'AWAY'})`);
-        console.log(`  Period: ${shot.period}`);
-        console.log(`  Original coords: (${shot.x_cord.toFixed(1)}, ${shot.y_cord.toFixed(1)})`);
-        console.log(`  Should flip: ${shouldFlip} (negative X = attacking left, needs flip)`);
-        
-        if (shouldFlip) {
-          console.log(`  New coords: (${(-shot.x_cord).toFixed(1)}, ${(-shot.y_cord).toFixed(1)})`);
-        }
-        console.log('---');
-      }
-      
-      if (shouldFlip) {
+      if (shot.x_cord < 0) {
         normalizedShot.x_cord = -shot.x_cord;  // Flip X coordinate (left-right)
         normalizedShot.y_cord = -shot.y_cord;  // Flip Y coordinate (up-down)
       }
@@ -258,89 +242,193 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
       .domain([0, 1])
   , []);
 
-  // Draw hockey rink
+  // Draw hockey rink - Half rink view (offensive zone only) with proper NHL proportions
   const drawHockeyRink = useCallback((g: d3.Selection<SVGGElement, unknown, null, undefined>) => {
     const rink = g.append('g').attr('class', 'rink');
 
-    // Rink outline
-    rink.append('rect')
-      .attr('x', rinkDimensions.centerX - rinkDimensions.width / 2)
-      .attr('y', rinkDimensions.centerY - rinkDimensions.height / 2)
-      .attr('width', rinkDimensions.width)
-      .attr('height', rinkDimensions.height)
-      .attr('fill', '#f8fafc')
-      .attr('stroke', '#e2e8f0')
-      .attr('stroke-width', 2)
-      .attr('rx', 20);
+    // Calculate proper hockey rink proportions for half rink
+    // NHL rink: 200ft x 85ft, we're showing ~100ft x 85ft (offensive zone)
+    const rinkLeft = rinkDimensions.centerX - rinkDimensions.width / 2;
+    const rinkRight = rinkDimensions.centerX + rinkDimensions.width / 2;
+    const rinkTop = rinkDimensions.centerY - rinkDimensions.height / 2;
+    const rinkBottom = rinkDimensions.centerY + rinkDimensions.height / 2;
+    const cornerRadius = 28; // NHL corner radius is 28ft
 
-    // Center line
-    rink.append('line')
-      .attr('x1', rinkDimensions.centerX)
-      .attr('y1', rinkDimensions.centerY - rinkDimensions.height / 2)
-      .attr('x2', rinkDimensions.centerX)
-      .attr('y2', rinkDimensions.centerY + rinkDimensions.height / 2)
-      .attr('stroke', '#3b82f6')
-      .attr('stroke-width', 2)
-      .attr('stroke-dasharray', '5,5');
-
-    // Goal lines
-    const goalLineOffset = rinkDimensions.width * 0.15;
-    rink.append('line')
-      .attr('x1', rinkDimensions.centerX - goalLineOffset)
-      .attr('y1', rinkDimensions.centerY - rinkDimensions.height / 2)
-      .attr('x2', rinkDimensions.centerX - goalLineOffset)
-      .attr('y2', rinkDimensions.centerY + rinkDimensions.height / 2)
-      .attr('stroke', '#dc2626')
+    // Rink outline with proper rounded corners
+    rink.append('path')
+      .attr('d', `
+        M ${rinkLeft + cornerRadius} ${rinkTop}
+        L ${rinkRight - cornerRadius} ${rinkTop}
+        A ${cornerRadius} ${cornerRadius} 0 0 1 ${rinkRight} ${rinkTop + cornerRadius}
+        L ${rinkRight} ${rinkBottom - cornerRadius}
+        A ${cornerRadius} ${cornerRadius} 0 0 1 ${rinkRight - cornerRadius} ${rinkBottom}
+        L ${rinkLeft + cornerRadius} ${rinkBottom}
+        A ${cornerRadius} ${cornerRadius} 0 0 1 ${rinkLeft} ${rinkBottom - cornerRadius}
+        L ${rinkLeft} ${rinkTop + cornerRadius}
+        A ${cornerRadius} ${cornerRadius} 0 0 1 ${rinkLeft + cornerRadius} ${rinkTop}
+        Z
+      `)
+      .attr('fill', '#ffffff')
+      .attr('stroke', '#000000')
       .attr('stroke-width', 2);
 
+    // Blue line (zone entrance) - 30ft from center line (NHL standard)
+    const blueLineX = rinkLeft + (rinkDimensions.width * 0.30); // 30ft from center line
     rink.append('line')
-      .attr('x1', rinkDimensions.centerX + goalLineOffset)
-      .attr('y1', rinkDimensions.centerY - rinkDimensions.height / 2)
-      .attr('x2', rinkDimensions.centerX + goalLineOffset)
-      .attr('y2', rinkDimensions.centerY + rinkDimensions.height / 2)
-      .attr('stroke', '#dc2626')
+      .attr('x1', blueLineX)
+      .attr('y1', rinkTop)
+      .attr('x2', blueLineX)
+      .attr('y2', rinkBottom)
+      .attr('stroke', '#0066cc')
+      .attr('stroke-width', 12); // NHL blue line is 12 inches wide
+
+    // Center line (red line bisecting the rink at back border)
+    const centerLineX = rinkLeft; // Center line is at the back border of our half-rink view
+    rink.append('line')
+      .attr('x1', centerLineX)
+      .attr('y1', rinkTop)
+      .attr('x2', centerLineX)
+      .attr('y2', rinkBottom)
+      .attr('stroke', '#cc0000')
       .attr('stroke-width', 2);
 
-    // Face-off circles
-    const faceoffRadius = 15;
+    // Center circle (half circle at center line) - 30ft diameter (15ft radius) - Blue color
+    const centerCircleRadius = rinkDimensions.width * 0.075; // 15ft radius
+    rink.append('path')
+      .attr('d', `
+        M ${centerLineX} ${rinkDimensions.centerY - centerCircleRadius}
+        A ${centerCircleRadius} ${centerCircleRadius} 0 0 1 ${centerLineX} ${rinkDimensions.centerY + centerCircleRadius}
+      `)
+      .attr('fill', 'none')
+      .attr('stroke', '#0066cc')
+      .attr('stroke-width', 2);
+      
+    // Center face-off dot (puck drop location) - blue to match center circle
+    rink.append('circle')
+      .attr('cx', centerLineX)
+      .attr('cy', rinkDimensions.centerY)
+      .attr('r', 3)
+      .attr('fill', '#0066cc')
+      .attr('stroke', '#ffffff')
+      .attr('stroke-width', 1);
+
+    // Goal line (89ft from center line, 11ft from end boards in NHL rink)
+    const goalLineX = rinkLeft + (rinkDimensions.width * 0.89); // 89ft from center line
+    rink.append('line')
+      .attr('x1', goalLineX)
+      .attr('y1', rinkTop)
+      .attr('x2', goalLineX)
+      .attr('y2', rinkBottom)
+      .attr('stroke', '#cc0000')
+      .attr('stroke-width', 2);
+
+    // Goal crease (6ft radius from goal line) - curves towards center ice
+    const goalX = goalLineX;
+    const creaseRadius = rinkDimensions.width * 0.06; // 6ft radius
+    rink.append('path')
+      .attr('d', `
+        M ${goalX} ${rinkDimensions.centerY - creaseRadius}
+        A ${creaseRadius} ${creaseRadius} 0 0 0 ${goalX} ${rinkDimensions.centerY + creaseRadius}
+      `)
+      .attr('fill', 'rgba(135, 206, 235, 0.3)')
+      .attr('stroke', '#cc0000')
+      .attr('stroke-width', 2);
+
+
+    // Face-off circles (30ft diameter, 15ft radius) - positioned 20ft from goal line
+    const faceoffRadius = rinkDimensions.width * 0.075; // 15ft radius
+    const faceoffDistance = rinkDimensions.width * 0.2; // 20ft from goal line  
+    const faceoffOffsetY = rinkDimensions.height * 0.26; // ~22ft from center
+    
     const faceoffPositions = [
-      { x: rinkDimensions.centerX, y: rinkDimensions.centerY },
-      { x: rinkDimensions.centerX - goalLineOffset * 0.7, y: rinkDimensions.centerY - rinkDimensions.height * 0.25 },
-      { x: rinkDimensions.centerX - goalLineOffset * 0.7, y: rinkDimensions.centerY + rinkDimensions.height * 0.25 },
-      { x: rinkDimensions.centerX + goalLineOffset * 0.7, y: rinkDimensions.centerY - rinkDimensions.height * 0.25 },
-      { x: rinkDimensions.centerX + goalLineOffset * 0.7, y: rinkDimensions.centerY + rinkDimensions.height * 0.25 },
+      { x: goalLineX - faceoffDistance, y: rinkDimensions.centerY - faceoffOffsetY },
+      { x: goalLineX - faceoffDistance, y: rinkDimensions.centerY + faceoffOffsetY },
     ];
 
     faceoffPositions.forEach(pos => {
+      // Main circle
       rink.append('circle')
         .attr('cx', pos.x)
         .attr('cy', pos.y)
         .attr('r', faceoffRadius)
         .attr('fill', 'none')
-        .attr('stroke', '#6b7280')
-        .attr('stroke-width', 1);
+        .attr('stroke', '#cc0000')
+        .attr('stroke-width', 2);
+        
+      // Center dot
+      rink.append('circle')
+        .attr('cx', pos.x)
+        .attr('cy', pos.y)
+        .attr('r', 1)
+        .attr('fill', '#cc0000');
+        
+      // Hash marks inside circle
+      const hashLength = 4;
+      const hashOffset = faceoffRadius - 2;
+      
+      // Top and bottom hash marks
+      rink.append('line')
+        .attr('x1', pos.x - hashLength/2)
+        .attr('y1', pos.y - hashOffset)
+        .attr('x2', pos.x + hashLength/2)
+        .attr('y2', pos.y - hashOffset)
+        .attr('stroke', '#cc0000')
+        .attr('stroke-width', 2);
+        
+      rink.append('line')
+        .attr('x1', pos.x - hashLength/2)
+        .attr('y1', pos.y + hashOffset)
+        .attr('x2', pos.x + hashLength/2)
+        .attr('y2', pos.y + hashOffset)
+        .attr('stroke', '#cc0000')
+        .attr('stroke-width', 2);
+        
+      // Left and right hash marks
+      rink.append('line')
+        .attr('x1', pos.x - hashOffset)
+        .attr('y1', pos.y - hashLength/2)
+        .attr('x2', pos.x - hashOffset)
+        .attr('y2', pos.y + hashLength/2)
+        .attr('stroke', '#cc0000')
+        .attr('stroke-width', 2);
+        
+      rink.append('line')
+        .attr('x1', pos.x + hashOffset)
+        .attr('y1', pos.y - hashLength/2)
+        .attr('x2', pos.x + hashOffset)
+        .attr('y2', pos.y + hashLength/2)
+        .attr('stroke', '#cc0000')
+        .attr('stroke-width', 2);
     });
 
-    // Goals
-    const goalWidth = 6;
-    const goalHeight = 4;
+    // Goal (6ft wide x 4ft deep)
+    const goalWidth = rinkDimensions.height * 0.07; // ~6ft
+    const goalDepth = rinkDimensions.width * 0.02; // ~4ft
+    
+    // Goal frame
     rink.append('rect')
-      .attr('x', rinkDimensions.centerX - goalLineOffset - goalHeight / 2)
+      .attr('x', goalLineX)
       .attr('y', rinkDimensions.centerY - goalWidth / 2)
-      .attr('width', goalHeight)
+      .attr('width', goalDepth)
       .attr('height', goalWidth)
-      .attr('fill', '#dbeafe')
-      .attr('stroke', '#3b82f6')
-      .attr('stroke-width', 2);
+      .attr('fill', 'none')
+      .attr('stroke', '#cc0000')
+      .attr('stroke-width', 3);
 
-    rink.append('rect')
-      .attr('x', rinkDimensions.centerX + goalLineOffset - goalHeight / 2)
-      .attr('y', rinkDimensions.centerY - goalWidth / 2)
-      .attr('width', goalHeight)
-      .attr('height', goalWidth)
-      .attr('fill', '#dbeafe')
-      .attr('stroke', '#3b82f6')
-      .attr('stroke-width', 2);
+    // Goal posts (circles at corners)
+    rink.append('circle')
+      .attr('cx', goalLineX)
+      .attr('cy', rinkDimensions.centerY - goalWidth / 2)
+      .attr('r', 1.5)
+      .attr('fill', '#cc0000');
+      
+    rink.append('circle')
+      .attr('cx', goalLineX)
+      .attr('cy', rinkDimensions.centerY + goalWidth / 2)
+      .attr('r', 1.5)
+      .attr('fill', '#cc0000');
+
+
   }, [rinkDimensions]);
 
   // Enhanced tooltip functions for better mobile/tablet experience
@@ -1159,28 +1247,6 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
           </div>
         )}
 
-        {/* Rink Elements Legend */}
-        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Rink Elements</h4>
-          <div className="flex flex-wrap gap-4 text-xs text-gray-600 dark:text-gray-400">
-            <div className="flex items-center">
-              <div className="w-3 h-1 bg-blue-500 mr-2" style={{ borderStyle: 'dashed' }}></div>
-              <span>Center Line</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-1 bg-red-600 mr-2"></div>
-              <span>Goal Lines</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-blue-100 border border-blue-500 mr-2"></div>
-              <span>Goals</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 border border-gray-500 rounded-full mr-2"></div>
-              <span>Face-off Circles</span>
-            </div>
-          </div>
-        </div>
 
         {/* Statistics */}
         <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-300 pt-2 border-t border-gray-200 dark:border-gray-600">
