@@ -6,9 +6,9 @@ Quick CSV import to Supabase - Run this after setting your credentials
 import os
 import sys
 
-# Check for credentials
-SUPABASE_URL = input("{{SUPABASE_URL}}")
-SUPABASE_KEY = input("{{SUPABASE_ANON_KEY}}")
+# SUPABASE CREDENTIALS - SET THESE ENVIRONMENT VARIABLES
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_KEY = os.getenv('SUPABASE_ANON_KEY')
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     print("❌ Need both URL and key to proceed")

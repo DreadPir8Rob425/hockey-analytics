@@ -3,9 +3,16 @@
 Clear existing data and run full import
 """
 
-# SUPABASE CREDENTIALS
-SUPABASE_URL = "{{SUPABASE_URL}}"
-SUPABASE_KEY = "{{SUPABASE_ANON_KEY}}"
+# SUPABASE CREDENTIALS - SET THESE ENVIRONMENT VARIABLES
+import os
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_KEY = os.getenv('SUPABASE_ANON_KEY')
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    print("❌ Missing required environment variables: SUPABASE_URL and SUPABASE_ANON_KEY")
+    print("Please set these environment variables before running this script.")
+    import sys
+    sys.exit(1)
 
 import pandas as pd
 from supabase import create_client
