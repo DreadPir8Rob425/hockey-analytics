@@ -1,5 +1,19 @@
 # Data Migration Scripts
 
+## 🚨 CRITICAL SECURITY WARNING
+
+**ALL HARDCODED CREDENTIALS HAVE BEEN REMOVED FOR SECURITY**
+
+- **Scripts now require environment variables for Supabase credentials**
+- **Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` before running any script**
+- **Never commit credentials to version control**
+
+```bash
+# Required environment variables:
+export SUPABASE_URL="your-supabase-project-url"
+export SUPABASE_ANON_KEY="your-supabase-anon-key"
+```
+
 This folder contains Python scripts for importing NHL shot data from CSV files into Supabase database. The scripts handle data cleaning, column mapping (camelCase to snake_case), and batch uploading.
 
 ## 📁 Directory Structure
