@@ -91,20 +91,15 @@ export default function GamesPage() {
     fetchGames();
   }, [filters]);
 
-  // Load available teams
+  // Hardcoded list of all NHL teams (more reliable than API sampling)
   useEffect(() => {
-    const loadTeams = async () => {
-      try {
-        const response = await fetch('/api/teams-list');
-        if (response.ok) {
-          const data = await response.json();
-          setAvailableTeams(data.teams);
-        }
-      } catch (err) {
-        console.error('Failed to load teams:', err);
-      }
-    };
-    loadTeams();
+    const allNHLTeams = [
+      'ANA', 'ARI', 'ATL', 'BOS', 'BUF', 'CAR', 'CBJ', 'CGY', 'CHI', 'COL',
+      'DAL', 'DET', 'EDM', 'FLA', 'L.A', 'LAK', 'MIN', 'MTL', 'NJD', 'NSH',
+      'NYI', 'NYR', 'OTT', 'PHI', 'PIT', 'S.J', 'SEA', 'SJS', 'STL', 'T.B',
+      'TBL', 'TOR', 'UTA', 'VAN', 'VGK', 'WPG', 'WSH'
+    ];
+    setAvailableTeams(allNHLTeams);
   }, []);
 
   const loadMore = () => {
@@ -140,8 +135,8 @@ export default function GamesPage() {
     return 'text-yellow-600';
   };
 
-  const handleGameClick = (gameId: string) => {
-    router.push(`/games/${gameId}`);
+  const handleGameClick = (id: number) => {
+    router.push(`/games/${id}`);
   };
 
   if (error) {
@@ -226,6 +221,20 @@ export default function GamesPage() {
               <option value="2024">2024-25</option>
               <option value="2023">2023-24</option>
               <option value="2022">2022-23</option>
+              <option value="2021">2021-22</option>
+              <option value="2020">2020-21</option>
+              <option value="2019">2019-20</option>
+              <option value="2018">2018-19</option>
+              <option value="2017">2017-18</option>
+              <option value="2016">2016-17</option>
+              <option value="2015">2015-16</option>
+              <option value="2014">2014-15</option>
+              <option value="2013">2013-14</option>
+              <option value="2012">2012-13</option>
+              <option value="2011">2011-12</option>
+              <option value="2010">2010-11</option>
+              <option value="2009">2009-10</option>
+              <option value="2008">2008-09</option>
             </select>
           </div>
 
@@ -254,9 +263,9 @@ export default function GamesPage() {
         <div className="space-y-6">
           {games.map((game) => (
             <div 
-              key={game.game_id} 
+              key={game.id} 
               className="modern-card hover-lift cursor-pointer rounded-xl p-6 group border-l-4 border-l-blue-500 hover:border-l-purple-500 transition-all duration-300"
-              onClick={() => handleGameClick(game.game_id)}
+              onClick={() => handleGameClick(game.id)}
             >
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
                 {/* Game Info */}

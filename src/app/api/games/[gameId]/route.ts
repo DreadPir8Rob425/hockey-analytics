@@ -18,12 +18,34 @@ export async function GET(
 ) {
   try {
     const { gameId } = await params;
+    const id = parseInt(gameId);
 
-    // Get all data for this specific game_id
+    if (isNaN(id)) {
+      return NextResponse.json(
+        { error: 'Invalid game ID. Must be a number.' },
+        { status: 400 }
+      );
+    }
+
+    // First, get the game record to find the actual game_id
+    const { data: gameRecord, error: gameError } = await supabase
+      .from('games')
+      .select('game_id')
+      .eq('id', id)
+      .single();
+
+    if (gameError || !gameRecord) {
+      return NextResponse.json(
+        { error: 'Game not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get all data for this specific game_id (all situations)
     const { data: gameData, error } = await supabase
       .from('games')
       .select('*')
-      .eq('game_id', gameId)
+      .eq('game_id', gameRecord.game_id)
       .order('situation');
 
     if (error) {
@@ -64,7 +86,7 @@ export async function GET(
         y_cord,
         location
       `)
-      .eq('game_id', parseInt(gameId))
+      .eq('game_id', parseInt(gameRecord.game_id))
       .order('period')
       .order('time');
 

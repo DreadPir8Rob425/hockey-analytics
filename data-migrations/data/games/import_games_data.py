@@ -198,7 +198,7 @@ class GameDataImporter:
     def prepare_data_for_api(self, df: pd.DataFrame):
         """Prepare DataFrame data for REST API insertion"""
         # Remove any columns that shouldn't be inserted
-        excluded_columns = ['id', 'created_at', 'updated_at']
+        excluded_columns = ['id', 'created_at', 'updated_at', 'playoffGame']
         df_clean = df.drop(columns=[col for col in excluded_columns if col in df.columns])
         
         # Define which columns should be integers (based on the database schema)
@@ -306,7 +306,7 @@ def main():
     DB_PASSWORD = os.getenv('SUPABASE_DB_PASSWORD', 'your-db-password')
     
     # Path to your CSV file
-    CSV_FILE_PATH = 'DAL.csv'
+    CSV_FILE_PATH = 'all_teams.csv'
     
     # Check if CSV file exists
     if not os.path.exists(CSV_FILE_PATH):
