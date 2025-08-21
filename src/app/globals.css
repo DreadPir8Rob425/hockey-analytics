@@ -1,26 +1,147 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* FORCE LIGHT THEME - OVERRIDE EVERYTHING */
+html {
+  color-scheme: light !important;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html, body, #__next, [data-theme] {
+  background: #ffffff !important;
+  color: #1e293b !important;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  html, body, #__next, [data-theme] {
+    background: #ffffff !important;
+    color: #1e293b !important;
   }
 }
 
+:root {
+  --background: #ffffff;
+  --foreground: #1e293b;
+  
+  /* Enhanced color variables for better contrast */
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-accent: #3b82f6;
+  
+  /* Modern gradients */
+  --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  --gradient-secondary: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+  --gradient-success: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  --gradient-card: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  
+  /* Shadows */
+  --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-medium: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-large: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Removed Tailwind v4 @theme directive that was causing dark mode conflicts */
+
+/* Dark mode disabled - forcing light theme always */
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #ffffff !important;
+  color: #1e293b !important;
+  font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-feature-settings: 'rlig' 1, 'calt' 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Force light theme on all elements */
+* {
+  color-scheme: light !important;
+}
+
+/* Enhanced data-driven text visibility */
+.data-text {
+  color: var(--text-primary) !important;
+  font-weight: 600;
+}
+
+.data-text-secondary {
+  color: var(--text-secondary) !important;
+  font-weight: 500;
+}
+
+.data-text-muted {
+  color: var(--text-muted) !important;
+  font-weight: 500;
+}
+
+
+/* Ensure proper text visibility in all contexts */
+.readable-text {
+  color: #1a202c !important;
+  font-weight: 600;
+}
+
+.readable-text-secondary {
+  color: #2d3748 !important;
+  font-weight: 500;
+}
+
+.readable-text-muted {
+  color: #4a5568 !important;
+  font-weight: 500;
+}
+
+/* Modern card styles */
+.modern-card {
+  background: var(--gradient-card);
+  border: 1px solid rgb(229 231 235 / 0.8);
+  box-shadow: var(--shadow-soft);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modern-card:hover {
+  box-shadow: var(--shadow-medium);
+  transform: translateY(-2px);
+}
+
+@media (prefers-color-scheme: dark) {
+  .modern-card {
+    border: 1px solid rgb(55 65 81 / 0.8);
+  }
+}
+
+/* Gradient backgrounds */
+.gradient-primary {
+  background: var(--gradient-primary);
+}
+
+.gradient-secondary {
+  background: var(--gradient-secondary);
+}
+
+.gradient-success {
+  background: var(--gradient-success);
+}
+
+/* Enhanced loading animations */
+.loading-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .7;
+  }
+}
+
+/* Better hover effects */
+.hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-large);
 }
