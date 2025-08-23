@@ -41,9 +41,8 @@ const Navigation = () => {
                 href={item.href}
                 className="relative px-5 py-3 rounded-xl text-sm font-bold transition-all duration-200 hover:shadow-lg hover:scale-105 group"
                 style={{
-                  color: 'var(--steel-gray)',
-                  '--hover-bg': 'var(--gradient-secondary)'
-                }}
+                  color: 'var(--steel-gray)'
+                } as React.CSSProperties}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = 'var(--gradient-secondary)';
                   e.currentTarget.style.color = 'white';
