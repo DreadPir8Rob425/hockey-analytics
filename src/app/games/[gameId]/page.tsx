@@ -97,52 +97,52 @@ export default function GameDetailsPage() {
 
   const renderSituationStats = (situation: any, title: string) => {
     const getBadgeStyle = () => {
-      if (title.includes('5-on-5')) return 'bg-gradient-to-r from-emerald-500 to-teal-500';
-      if (title.includes('5-on-4')) return 'bg-gradient-to-r from-amber-500 to-orange-500';
-      if (title.includes('4-on-5')) return 'bg-gradient-to-r from-red-500 to-pink-500';
-      return 'bg-gradient-to-r from-indigo-500 to-purple-500';
+      if (title.includes('5-on-5')) return 'var(--gradient-navy)';
+      if (title.includes('5-on-4')) return 'var(--gradient-secondary)';
+      if (title.includes('4-on-5')) return 'var(--hockey-red-dark)';
+      return 'var(--steel-gray-dark)';
     };
     
     return (
-      <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-slate-100 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300">
-        <div className={`inline-flex items-center px-4 py-2 rounded-full text-white font-bold text-sm mb-6 ${getBadgeStyle()}`}>
+      <div className="bg-white rounded-2xl p-8 shadow-xl border-2 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300" style={{borderColor: 'var(--ice-blue-dark)'}}>
+        <div className="inline-flex items-center px-4 py-2 rounded-full text-white font-bold text-sm mb-6" style={{background: getBadgeStyle()}}>
           {title}
         </div>
         
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 rounded-2xl p-6 border border-emerald-200 shadow-lg hover:shadow-xl transition-all duration-300">
+          <div className="rounded-2xl p-6 border shadow-lg hover:shadow-xl transition-all duration-300" style={{background: 'var(--ice-blue)', borderColor: 'var(--ice-blue-dark)'}}>
             <div className="text-center">
-              <div className="text-3xl font-black text-emerald-800 mb-2">
-                {situation.goals_for}<span className="text-emerald-400 mx-2">-</span>{situation.goals_against}
+              <div className="text-3xl font-black mb-2" style={{color: 'var(--deep-navy)'}}>
+                {situation.goals_for}<span className="mx-2" style={{color: 'var(--steel-gray)'}}>-</span>{situation.goals_against}
               </div>
-              <div className="text-emerald-600 font-bold text-sm uppercase tracking-wider">Goals</div>
+              <div className="font-bold text-sm uppercase tracking-wider" style={{color: 'var(--steel-gray)'}}>Goals</div>
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50 rounded-2xl p-6 border border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300">
+          <div className="rounded-2xl p-6 border shadow-lg hover:shadow-xl transition-all duration-300" style={{background: 'var(--ice-blue)', borderColor: 'var(--ice-blue-dark)'}}>
             <div className="text-center">
-              <div className="text-3xl font-black text-blue-800 mb-2">
-                {situation.shots_on_goal_for}<span className="text-blue-400 mx-2">-</span>{situation.shots_on_goal_against}
+              <div className="text-3xl font-black mb-2" style={{color: 'var(--deep-navy)'}}>
+                {situation.shots_on_goal_for}<span className="mx-2" style={{color: 'var(--steel-gray)'}}>-</span>{situation.shots_on_goal_against}
               </div>
-              <div className="text-blue-600 font-bold text-sm uppercase tracking-wider">Shots</div>
+              <div className="font-bold text-sm uppercase tracking-wider" style={{color: 'var(--steel-gray)'}}>Shots</div>
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-purple-50 via-violet-50 to-indigo-50 rounded-2xl p-6 border border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300">
+          <div className="rounded-2xl p-6 border shadow-lg hover:shadow-xl transition-all duration-300" style={{background: 'var(--ice-blue)', borderColor: 'var(--ice-blue-dark)'}}>
             <div className="text-center">
-              <div className="text-3xl font-black text-purple-800 mb-2">
-                {situation.x_goals_for?.toFixed(1)}<span className="text-purple-400 mx-2">-</span>{situation.x_goals_against?.toFixed(1)}
+              <div className="text-3xl font-black mb-2" style={{color: 'var(--deep-navy)'}}>
+                {situation.x_goals_for?.toFixed(1)}<span className="mx-2" style={{color: 'var(--steel-gray)'}}>-</span>{situation.x_goals_against?.toFixed(1)}
               </div>
-              <div className="text-purple-600 font-bold text-sm uppercase tracking-wider">xGoals</div>
+              <div className="font-bold text-sm uppercase tracking-wider" style={{color: 'var(--steel-gray)'}}>xGoals</div>
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 rounded-2xl p-6 border border-orange-200 shadow-lg hover:shadow-xl transition-all duration-300">
+          <div className="rounded-2xl p-6 border shadow-lg hover:shadow-xl transition-all duration-300" style={{background: 'var(--ice-blue)', borderColor: 'var(--ice-blue-dark)'}}>
             <div className="text-center">
-              <div className="text-3xl font-black text-orange-800 mb-2">
+              <div className="text-3xl font-black mb-2" style={{color: 'var(--hockey-red)'}}>
                 {(situation.corsi_percentage * 100).toFixed(1)}%
               </div>
-              <div className="text-orange-600 font-bold text-sm uppercase tracking-wider">Corsi</div>
+              <div className="font-bold text-sm uppercase tracking-wider" style={{color: 'var(--steel-gray)'}}>Corsi</div>
             </div>
           </div>
         </div>
@@ -152,15 +152,15 @@ export default function GameDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-100 via-blue-100 to-indigo-200">
+      <div className="min-h-screen gradient-hero">
         <Navigation />
         <div className="flex flex-col items-center justify-center py-20">
           <div className="relative mb-8">
-            <div className="animate-spin rounded-full h-24 w-24 border-4 border-white/30 border-t-blue-500 shadow-lg"></div>
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 opacity-30 animate-pulse"></div>
+            <div className="animate-spin rounded-full h-24 w-24 border-4" style={{borderColor: 'var(--ice-blue-dark)', borderTopColor: 'var(--hockey-red)'}}></div>
+            <div className="absolute inset-0 rounded-full opacity-30 animate-pulse" style={{background: 'var(--gradient-navy)'}}></div>
           </div>
-          <h2 className="text-3xl font-black text-slate-800 mb-3 text-center">Loading Game Details</h2>
-          <p className="text-slate-600 font-medium text-lg">Fetching comprehensive analytics and statistics...</p>
+          <h2 className="text-3xl font-black mb-3 text-center" style={{color: 'var(--deep-navy)'}}>Loading Game Details</h2>
+          <p className="font-medium text-lg" style={{color: 'var(--steel-gray)'}}>Fetching comprehensive analytics and statistics...</p>
         </div>
       </div>
     );
@@ -168,29 +168,31 @@ export default function GameDetailsPage() {
 
   if (error || !game) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-rose-100 via-pink-100 to-red-200">
+      <div className="min-h-screen gradient-hero">
         <Navigation />
         <div className="container mx-auto px-4 py-8">
-          <div className="bg-white rounded-3xl p-12 shadow-2xl border border-red-200 text-center max-w-2xl mx-auto">
+          <div className="bg-white rounded-3xl p-12 shadow-2xl text-center max-w-2xl mx-auto" style={{border: '1px solid var(--ice-blue-dark)'}}>
             <div className="mb-8">
-              <div className="w-24 h-24 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                <div className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center">
+              <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg" style={{background: 'var(--ice-blue)'}}>
+                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{background: 'var(--hockey-red)'}}>
                   <span className="text-white font-bold text-xl">!</span>
                 </div>
               </div>
-              <h1 className="text-4xl font-black text-red-700 mb-4">Game Not Found</h1>
-              <p className="text-red-600 text-xl font-medium">{error || 'The requested game could not be found'}</p>
+              <h1 className="text-4xl font-black mb-4" style={{color: 'var(--hockey-red)'}}>Game Not Found</h1>
+              <p className="text-xl font-medium" style={{color: 'var(--steel-gray)'}}>{error || 'The requested game could not be found'}</p>
             </div>
             <div className="flex justify-center space-x-4">
               <button 
                 onClick={() => router.back()}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold px-8 py-4 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                className="text-white font-bold px-8 py-4 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                style={{background: 'var(--gradient-navy)'}}
               >
                 ← Go Back
               </button>
               <button 
                 onClick={() => window.location.reload()}
-                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold px-8 py-4 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                className="text-white font-bold px-8 py-4 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                style={{background: 'var(--gradient-secondary)'}}
               >
                 Retry
               </button>
@@ -202,31 +204,32 @@ export default function GameDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-100">
+    <div className="min-h-screen gradient-hero">
       <Navigation />
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <button 
             onClick={() => router.back()}
-            className="mb-6 group flex items-center space-x-3 text-blue-600 hover:text-blue-800 transition-colors duration-200 bg-white px-4 py-2 rounded-2xl shadow-lg hover:shadow-xl"
+            className="mb-6 group flex items-center space-x-3 transition-colors duration-200 bg-white px-4 py-2 rounded-2xl shadow-lg hover:shadow-xl"
+            style={{color: 'var(--deep-navy)'}}
           >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center group-hover:from-blue-600 group-hover:to-blue-700 transition-all duration-200">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200" style={{background: 'var(--gradient-navy)'}}>
               <span className="text-white font-bold">←</span>
             </div>
-            <span className="font-bold text-slate-700">Back to Games</span>
+            <span className="font-bold" style={{color: 'var(--steel-gray)'}}>Back to Games</span>
           </button>
           
-          <div className="bg-white rounded-3xl p-10 shadow-2xl border-2 border-blue-100">
+          <div className="bg-white rounded-3xl p-10 shadow-2xl border-2" style={{borderColor: 'var(--ice-blue-dark)'}}>
             <div className="flex flex-col lg:flex-row lg:items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-center space-x-6 mb-6">
                   <div className="flex items-center space-x-4">
-                    <h1 className="text-5xl font-black text-slate-800">{game.team}</h1>
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    <h1 className="text-5xl font-black" style={{color: 'var(--deep-navy)'}}>{game.team}</h1>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg" style={{background: 'var(--gradient-navy)'}}>
                       <span className="text-white font-black text-sm">VS</span>
                     </div>
-                    <h1 className="text-5xl font-black text-slate-800">{game.opposing_team}</h1>
+                    <h1 className="text-5xl font-black" style={{color: 'var(--deep-navy)'}}>{game.opposing_team}</h1>
                   </div>
                   <div className={`px-6 py-3 text-sm font-black rounded-full shadow-lg ${
                     game.home_or_away === 'HOME' 
@@ -262,7 +265,7 @@ export default function GameDetailsPage() {
 
         {/* Tabs */}
         <div className="mb-8">
-        <div className="bg-white rounded-2xl p-3 shadow-xl border-2 border-slate-100">
+        <div className="bg-white rounded-2xl p-3 shadow-xl border-2" style={{borderColor: 'var(--ice-blue-dark)'}}>
           <nav className="flex space-x-2">
             {[
               { id: 'overview', label: 'Overview' },
@@ -275,9 +278,25 @@ export default function GameDetailsPage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex-1 py-4 px-6 rounded-xl font-bold text-sm transition-all duration-300 ${
                     activeTab === tab.id
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg transform scale-105'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800 hover:scale-102'
+                      ? 'text-white shadow-lg transform scale-105'
+                      : 'hover:scale-102'
                   }`}
+                  style={{
+                    background: activeTab === tab.id ? 'var(--gradient-secondary)' : 'transparent',
+                    color: activeTab === tab.id ? 'white' : 'var(--steel-gray)'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (activeTab !== tab.id) {
+                      e.currentTarget.style.background = 'var(--ice-blue)';
+                      e.currentTarget.style.color = 'var(--deep-navy)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (activeTab !== tab.id) {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = 'var(--steel-gray)';
+                    }
+                  }}
                 >
                   {tab.label}
                 </button>
@@ -290,9 +309,9 @@ export default function GameDetailsPage() {
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Basic Stats */}
-            <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-slate-100">
-              <h3 className="text-2xl font-black text-slate-800 mb-6 flex items-center space-x-3">
-                <span className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-blue-600 flex items-center justify-center text-white shadow-lg text-lg font-black">G</span>
+            <div className="bg-white rounded-2xl p-8 shadow-xl border-2" style={{borderColor: 'var(--ice-blue-dark)'}}>
+              <h3 className="text-2xl font-black mb-6 flex items-center space-x-3" style={{color: 'var(--deep-navy)'}}>
+                <span className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg text-lg font-black" style={{background: 'var(--gradient-navy)'}}>G</span>
                 <span>Game Statistics</span>
               </h3>
               <div className="space-y-4">
@@ -305,12 +324,12 @@ export default function GameDetailsPage() {
                   <span className="text-slate-900 font-black text-xl">{game.x_goals_for.toFixed(2)} - {game.x_goals_against.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">Shooting %</span>
-                  <span className="text-blue-600 font-black text-xl">{game.analytics.shootingPercentage}%</span>
+                  <span className="font-bold" style={{color: 'var(--steel-gray)'}}>Shooting %</span>
+                  <span className="font-black text-xl" style={{color: 'var(--deep-navy)'}}>{game.analytics.shootingPercentage}%</span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">Save %</span>
-                  <span className="text-purple-600 font-black text-xl">{game.analytics.savePercentage}%</span>
+                  <span className="font-bold" style={{color: 'var(--steel-gray)'}}>Save %</span>
+                  <span className="font-black text-xl" style={{color: 'var(--professional-blue)'}}>{game.analytics.savePercentage}%</span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
                   <span className="text-slate-600 font-bold">Face-off Wins</span>
@@ -328,19 +347,19 @@ export default function GameDetailsPage() {
             </div>
 
             {/* Advanced Metrics */}
-            <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-slate-100">
-              <h3 className="text-2xl font-black text-slate-800 mb-6 flex items-center space-x-3">
-                <span className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white shadow-lg text-lg font-black">A</span>
+            <div className="bg-white rounded-2xl p-8 shadow-xl border-2" style={{borderColor: 'var(--ice-blue-dark)'}}>
+              <h3 className="text-2xl font-black mb-6 flex items-center space-x-3" style={{color: 'var(--deep-navy)'}}>
+                <span className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg text-lg font-black" style={{background: 'var(--gradient-secondary)'}}>A</span>
                 <span>Advanced Metrics</span>
               </h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">Corsi %</span>
-                  <span className="text-blue-600 font-black text-xl">{(game.corsi_percentage * 100).toFixed(1)}%</span>
+                  <span className="font-bold" style={{color: 'var(--steel-gray)'}}>Corsi %</span>
+                  <span className="font-black text-xl" style={{color: 'var(--hockey-red)'}}>{(game.corsi_percentage * 100).toFixed(1)}%</span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">Fenwick %</span>
-                  <span className="text-purple-600 font-black text-xl">{(game.fenwick_percentage * 100).toFixed(1)}%</span>
+                  <span className="font-bold" style={{color: 'var(--steel-gray)'}}>Fenwick %</span>
+                  <span className="font-black text-xl" style={{color: 'var(--deep-navy)'}}>{(game.fenwick_percentage * 100).toFixed(1)}%</span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
                   <span className="text-slate-600 font-bold">PDO</span>
@@ -382,48 +401,46 @@ export default function GameDetailsPage() {
 
         {activeTab === 'analytics' && (
           <div className="space-y-8">
-            <div className="bg-white rounded-2xl p-10 shadow-xl border-2 border-slate-100">
-              <h3 className="text-3xl font-black text-slate-800 mb-8 flex items-center space-x-3">
-                <span className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl shadow-lg font-black">P</span>
+            <div className="bg-white rounded-2xl p-10 shadow-xl border-2" style={{borderColor: 'var(--ice-blue-dark)'}}>
+              <h3 className="text-3xl font-black mb-8 flex items-center space-x-3" style={{color: 'var(--deep-navy)'}}>
+                <span className="w-12 h-12 rounded-full flex items-center justify-center text-white text-2xl shadow-lg font-black" style={{background: 'var(--gradient-navy)'}}>P</span>
                 <span>Performance Analysis</span>
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="text-center p-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl border-2 border-blue-200 shadow-lg">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                    <span className="text-white font-bold text-2xl">PDO</span>
+                <div className="text-center p-8 rounded-2xl border-2 shadow-lg" style={{background: 'var(--ice-blue)', borderColor: 'var(--ice-blue-dark)'}}>
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg" style={{background: 'var(--gradient-navy)'}}>
+                    <span className="text-white font-bold text-lg">PDO</span>
                   </div>
-                  <div className={`text-4xl font-black mb-3 ${
-                    parseFloat(game.analytics.pdo) > 100 ? 'text-blue-600' : 'text-orange-600'
-                  }`}>{game.analytics.pdo}</div>
-                  <div className="text-base font-black text-slate-700 mb-2">PDO</div>
-                  <div className="text-sm text-slate-600 font-bold">
+                  <div className={`text-4xl font-black mb-3`} style={{color: parseFloat(game.analytics.pdo) > 100 ? 'var(--deep-navy)' : 'var(--hockey-red)'}}>{game.analytics.pdo}</div>
+                  <div className="text-base font-black mb-2" style={{color: 'var(--deep-navy)'}}>PDO</div>
+                  <div className="text-sm font-bold" style={{color: 'var(--steel-gray)'}}>
                     {parseFloat(game.analytics.pdo) > 100 ? 'Above Average' : 'Below Average'}
                   </div>
                 </div>
                 
-                <div className="text-center p-8 bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl border-2 border-green-200 shadow-lg">
-                  <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <div className="text-center p-8 rounded-2xl border-2 shadow-lg" style={{background: 'var(--ice-blue)', borderColor: 'var(--ice-blue-dark)'}}>
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg" style={{background: 'var(--gradient-secondary)'}}>
                     <span className="text-white font-bold text-lg">xG</span>
                   </div>
                   <div className={`text-4xl font-black mb-3 ${parseFloat(game.analytics.xgDifferential) > 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {parseFloat(game.analytics.xgDifferential) > 0 ? '+' : ''}{game.analytics.xgDifferential}
                   </div>
-                  <div className="text-base font-black text-slate-700 mb-2">xG Differential</div>
-                  <div className="text-sm text-slate-600 font-bold">
+                  <div className="text-base font-black mb-2" style={{color: 'var(--deep-navy)'}}>xG Differential</div>
+                  <div className="text-sm font-bold" style={{color: 'var(--steel-gray)'}}>
                     Expected Goals Advantage
                   </div>
                 </div>
                 
-                <div className="text-center p-8 bg-gradient-to-br from-purple-50 to-pink-100 rounded-2xl border-2 border-purple-200 shadow-lg">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <div className="text-center p-8 rounded-2xl border-2 shadow-lg" style={{background: 'var(--ice-blue)', borderColor: 'var(--ice-blue-dark)'}}>
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg" style={{background: 'var(--steel-gray-dark)'}}>
                     <span className="text-white font-bold text-lg">VS</span>
                   </div>
                   <div className={`text-4xl font-black mb-3 ${parseFloat(game.analytics.xgOutperformance) > 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {parseFloat(game.analytics.xgOutperformance) > 0 ? '+' : ''}{game.analytics.xgOutperformance}
                   </div>
-                  <div className="text-base font-black text-slate-700 mb-2">vs Expected</div>
-                  <div className="text-sm text-slate-600 font-bold">
+                  <div className="text-base font-black mb-2" style={{color: 'var(--deep-navy)'}}>vs Expected</div>
+                  <div className="text-sm font-bold" style={{color: 'var(--steel-gray)'}}>
                     Goals vs xG Performance
                   </div>
                 </div>
@@ -432,15 +449,15 @@ export default function GameDetailsPage() {
             
             {/* Additional performance insights */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-slate-100">
-                <h4 className="text-2xl font-black text-slate-800 mb-6 flex items-center space-x-3">
-                  <span className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center text-white shadow-lg text-lg font-black">O</span>
+              <div className="bg-white rounded-2xl p-8 shadow-xl border-2" style={{borderColor: 'var(--ice-blue-dark)'}}>
+                <h4 className="text-2xl font-black mb-6 flex items-center space-x-3" style={{color: 'var(--deep-navy)'}}>
+                  <span className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg text-lg font-black" style={{background: 'var(--gradient-navy)'}}>O</span>
                   <span>Offensive Performance</span>
                 </h4>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center py-3 border-b border-slate-200">
-                    <span className="text-slate-600 font-bold">Shooting %</span>
-                    <span className="text-blue-600 font-black text-xl">{game.analytics.shootingPercentage}%</span>
+                    <span className="font-bold" style={{color: 'var(--steel-gray)'}}>Shooting %</span>
+                    <span className="font-black text-xl" style={{color: 'var(--deep-navy)'}}>{game.analytics.shootingPercentage}%</span>
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-slate-200">
                     <span className="text-slate-600 font-bold">Goals For</span>
@@ -453,15 +470,15 @@ export default function GameDetailsPage() {
                 </div>
               </div>
               
-              <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-slate-100">
-                <h4 className="text-2xl font-black text-slate-800 mb-6 flex items-center space-x-3">
-                  <span className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white shadow-lg text-lg font-black">D</span>
+              <div className="bg-white rounded-2xl p-8 shadow-xl border-2" style={{borderColor: 'var(--ice-blue-dark)'}}>
+                <h4 className="text-2xl font-black mb-6 flex items-center space-x-3" style={{color: 'var(--deep-navy)'}}>
+                  <span className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg text-lg font-black" style={{background: 'var(--gradient-secondary)'}}>D</span>
                   <span>Defensive Performance</span>
                 </h4>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center py-3 border-b border-slate-200">
-                    <span className="text-slate-600 font-bold">Save %</span>
-                    <span className="text-purple-600 font-black text-xl">{game.analytics.savePercentage}%</span>
+                    <span className="font-bold" style={{color: 'var(--steel-gray)'}}>Save %</span>
+                    <span className="font-black text-xl" style={{color: 'var(--professional-blue)'}}>{game.analytics.savePercentage}%</span>
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-slate-200">
                     <span className="text-slate-600 font-bold">Goals Against</span>
@@ -480,56 +497,62 @@ export default function GameDetailsPage() {
         {activeTab === 'periods' && (
           <div className="space-y-8">
             {/* Period-by-Period Visual */}
-            <div className="bg-white rounded-2xl p-10 shadow-xl border-2 border-slate-100">
-              <h3 className="text-3xl font-black text-slate-800 mb-8 flex items-center space-x-3">
-                <span className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl shadow-lg font-black">T</span>
+            <div className="bg-white rounded-2xl p-10 shadow-xl border-2" style={{borderColor: 'var(--ice-blue-dark)'}}>
+              <h3 className="text-3xl font-black mb-8 flex items-center space-x-3" style={{color: 'var(--deep-navy)'}}>
+                <span className="w-12 h-12 rounded-full flex items-center justify-center text-white text-2xl shadow-lg font-black" style={{background: 'var(--gradient-secondary)'}}>T</span>
                 <span>Period-by-Period Performance</span>
               </h3>
               {Object.keys(game.periodBreakdown).length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   {Object.entries(game.periodBreakdown).map(([period, stats]) => (
-                    <div key={period} className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-8 border-2 border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300">
-                      <h4 className="text-xl font-black text-slate-800 text-center mb-6 flex items-center justify-center space-x-2">
-                        <span className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-black shadow-lg">{period}</span>
+                    <div key={period} className="rounded-2xl p-8 border-2 shadow-lg hover:shadow-xl transition-all duration-300" style={{background: 'var(--ice-blue)', borderColor: 'var(--ice-blue-dark)'}}>
+                      <h4 className="text-xl font-black text-center mb-6 flex items-center justify-center space-x-2" style={{color: 'var(--deep-navy)'}}>
+                        <span className="w-10 h-10 rounded-full flex items-center justify-center text-white font-black shadow-lg" style={{background: 'var(--gradient-navy)'}}>{period}</span>
                         <span>Period {period}</span>
                       </h4>
                       <div className="space-y-4">
-                        <div className="bg-white rounded-2xl p-6 border-2 border-slate-200 shadow-lg">
+                        <div className="bg-white rounded-2xl p-6 border-2 shadow-lg" style={{borderColor: 'var(--ice-blue-dark)'}}>
                           <div className="flex justify-between items-center">
-                            <span className="text-base font-bold text-slate-600">Goals:</span>
+                            <span className="text-base font-bold" style={{color: 'var(--steel-gray)'}}>Goals:</span>
                             <span className={`text-2xl font-black ${stats.goals_for > stats.goals_against ? 'text-green-600' : stats.goals_for < stats.goals_against ? 'text-red-600' : 'text-slate-800'}`}>
                               {stats.goals_for} - {stats.goals_against}
                             </span>
                           </div>
                         </div>
-                        <div className="bg-white rounded-2xl p-6 border-2 border-slate-200 shadow-lg">
+                        <div className="bg-white rounded-2xl p-6 border-2 shadow-lg" style={{borderColor: 'var(--ice-blue-dark)'}}>
                           <div className="flex justify-between items-center">
-                            <span className="text-base font-bold text-slate-600">Shots:</span>
-                            <span className="text-2xl font-black text-slate-800">{stats.for} - {stats.against}</span>
+                            <span className="text-base font-bold" style={{color: 'var(--steel-gray)'}}>Shots:</span>
+                            <span className="text-2xl font-black" style={{color: 'var(--deep-navy)'}}>{stats.for} - {stats.against}</span>
                           </div>
                         </div>
                         {/* Visual shot representation */}
-                        <div className="bg-white rounded-2xl p-6 border-2 border-slate-200 shadow-lg">
-                          <div className="flex justify-between text-sm font-bold text-slate-600 mb-3">
+                        <div className="bg-white rounded-2xl p-6 border-2 shadow-lg" style={{borderColor: 'var(--ice-blue-dark)'}}>
+                          <div className="flex justify-between text-sm font-bold mb-3" style={{color: 'var(--steel-gray)'}}>
                             <span>Shots For</span>
                             <span>Shots Against</span>
                           </div>
-                          <div className="flex h-8 rounded-full overflow-hidden border-2 border-slate-300 shadow-inner">
+                          <div className="flex h-8 rounded-full overflow-hidden border-2 shadow-inner" style={{borderColor: 'var(--ice-blue-dark)'}}>
                             <div 
-                              className="bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center" 
-                              style={{ width: `${(stats.for / (stats.for + stats.against) * 100) || 50}%` }}
+                              className="flex items-center justify-center" 
+                              style={{ 
+                                width: `${(stats.for / (stats.for + stats.against) * 100) || 50}%`,
+                                background: 'var(--gradient-navy)'
+                              }}
                             >
                               <span className="text-white text-sm font-black">{stats.for}</span>
                             </div>
                             <div 
-                              className="bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center" 
-                              style={{ width: `${(stats.against / (stats.for + stats.against) * 100) || 50}%` }}
+                              className="flex items-center justify-center" 
+                              style={{ 
+                                width: `${(stats.against / (stats.for + stats.against) * 100) || 50}%`,
+                                background: 'var(--gradient-secondary)'
+                              }}
                             >
                               <span className="text-white text-sm font-black">{stats.against}</span>
                             </div>
                           </div>
                           <div className="text-center mt-3">
-                            <span className="text-base font-black text-slate-700">Shot Share: {stats.for > 0 ? ((stats.for / (stats.for + stats.against)) * 100).toFixed(1) : '0.0'}%</span>
+                            <span className="text-base font-black" style={{color: 'var(--deep-navy)'}}>Shot Share: {stats.for > 0 ? ((stats.for / (stats.for + stats.against)) * 100).toFixed(1) : '0.0'}%</span>
                           </div>
                         </div>
                       </div>
@@ -549,21 +572,21 @@ export default function GameDetailsPage() {
             </div>
 
             {/* Detailed Table */}
-            <div className="bg-white rounded-2xl p-10 shadow-xl border-2 border-slate-100">
-              <h3 className="text-3xl font-black text-slate-800 mb-8 flex items-center space-x-3">
-                <span className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-500 to-gray-600 flex items-center justify-center text-white text-2xl shadow-lg font-black">S</span>
+            <div className="bg-white rounded-2xl p-10 shadow-xl border-2" style={{borderColor: 'var(--ice-blue-dark)'}}>
+              <h3 className="text-3xl font-black mb-8 flex items-center space-x-3" style={{color: 'var(--deep-navy)'}}>
+                <span className="w-12 h-12 rounded-full flex items-center justify-center text-white text-2xl shadow-lg font-black" style={{background: 'var(--steel-gray-dark)'}}>S</span>
                 <span>Detailed Statistics</span>
               </h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead>
                     <tr className="border-b-2 border-slate-200">
-                      <th className="px-6 py-4 text-left text-base font-black text-slate-800 uppercase tracking-wider">Period</th>
-                      <th className="px-6 py-4 text-left text-base font-black text-slate-800 uppercase tracking-wider">Goals For</th>
-                      <th className="px-6 py-4 text-left text-base font-black text-slate-800 uppercase tracking-wider">Goals Against</th>
-                      <th className="px-6 py-4 text-left text-base font-black text-slate-800 uppercase tracking-wider">Shots For</th>
-                      <th className="px-6 py-4 text-left text-base font-black text-slate-800 uppercase tracking-wider">Shots Against</th>
-                      <th className="px-6 py-4 text-left text-base font-black text-slate-800 uppercase tracking-wider">Shot Share</th>
+                      <th className="px-6 py-4 text-left text-base font-black uppercase tracking-wider" style={{color: 'var(--deep-navy)'}}>Period</th>
+                      <th className="px-6 py-4 text-left text-base font-black uppercase tracking-wider" style={{color: 'var(--deep-navy)'}}>Goals For</th>
+                      <th className="px-6 py-4 text-left text-base font-black uppercase tracking-wider" style={{color: 'var(--deep-navy)'}}>Goals Against</th>
+                      <th className="px-6 py-4 text-left text-base font-black uppercase tracking-wider" style={{color: 'var(--deep-navy)'}}>Shots For</th>
+                      <th className="px-6 py-4 text-left text-base font-black uppercase tracking-wider" style={{color: 'var(--deep-navy)'}}>Shots Against</th>
+                      <th className="px-6 py-4 text-left text-base font-black uppercase tracking-wider" style={{color: 'var(--deep-navy)'}}>Shot Share</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -571,8 +594,8 @@ export default function GameDetailsPage() {
                       <tr key={period} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors duration-200 ${index % 2 === 0 ? 'bg-slate-25' : 'bg-white'}`}>
                         <td className="px-6 py-5 whitespace-nowrap">
                           <div className="flex items-center space-x-3">
-                            <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-black shadow-lg">{period}</span>
-                            <span className="text-base font-black text-slate-800">Period {period}</span>
+                            <span className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-black shadow-lg" style={{background: 'var(--gradient-navy)'}}>{period}</span>
+                            <span className="text-base font-black" style={{color: 'var(--deep-navy)'}}>Period {period}</span>
                           </div>
                         </td>
                         <td className="px-6 py-5 whitespace-nowrap">
