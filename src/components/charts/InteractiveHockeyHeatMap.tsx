@@ -1130,9 +1130,9 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
                       <div className="text-xs text-gray-400 mb-1">Top Shooter</div>
                       <div className="text-xs">
                         <span className="font-medium text-yellow-300">{String(tooltip.data.mostFrequentShooter || 'N/A')}</span>
-                        {tooltip.data.shooterCount && Number(tooltip.data.shooterCount) > 0 && (
+                        {tooltip.data.shooterCount && Number(tooltip.data.shooterCount) > 0 ? (
                           <span className="text-gray-400"> ({String(tooltip.data.shooterCount)} shots)</span>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                     
