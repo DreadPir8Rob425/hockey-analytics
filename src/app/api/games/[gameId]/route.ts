@@ -1,6 +1,22 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+/**
+ * Game Detail API Route
+ * 
+ * IMPORTANT: Team Perspective Consistency Fix
+ * ==========================================
+ * This API ensures data consistency between games listing and detail views.
+ * Each game exists in the database with TWO team perspectives (home & away).
+ * 
+ * Problem: Games listing shows one team's stats, but detail view might show
+ * the opposing team's stats, causing Corsi/Fenwick values to appear different
+ * (they're actually complementary - if Team A has 52.7% Corsi, Team B has 47.3%).
+ * 
+ * Solution: Always use the SAME team perspective as the original game record
+ * clicked from the games listing to maintain consistency.
+ */
+
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -11,6 +27,18 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+
+/**
+ * Validates data consistency between games listing and detail views
+ */
+function validateTeamConsistency(originalTeam: string, detailTeam: string, gameId: string) {
+  if (originalTeam !== detailTeam) {
+    console.warn(`⚠️  Team consistency warning for game ${gameId}: Original=${originalTeam}, Detail=${detailTeam}`);
+    return false;
+  }
+  console.log(`✅ Team consistency validated for game ${gameId}: ${originalTeam}`);
+  return true;
+}
 
 export async function GET(
   request: Request,
@@ -42,10 +70,26 @@ export async function GET(
     }
 
     // Get all data for this specific game_id (all situations)
+    // First get the original game record to maintain team perspective consistency
+    const { data: originalGame, error: originalError } = await supabase
+      .from('games')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (originalError || !originalGame) {
+      return NextResponse.json(
+        { error: 'Original game record not found' },
+        { status: 404 }
+      );
+    }
+
+    // Now get all data for this specific game_id and team to maintain consistency
     const { data: gameData, error } = await supabase
       .from('games')
       .select('*')
       .eq('game_id', gameRecord.game_id)
+      .eq('team', originalGame.team) // Use the same team as the original record
       .order('situation');
 
     if (error) {
@@ -142,7 +186,11 @@ export async function GET(
       return acc;
     }, {} as Record<number, any>) || {};
 
-    console.log(`Game Details API: Found game ${gameId} with ${gameData.length} situations`);
+    // Validate team consistency to ensure data integrity
+    validateTeamConsistency(originalGame.team, allSituations.team, gameId);
+    
+    console.log(`Game Details API: Found game ${gameId} with ${gameData.length} situations for team ${originalGame.team}`);
+    console.log(`Team perspective consistency: Original team=${originalGame.team}, Detail team=${allSituations.team}`);
     
     return NextResponse.json({
       game: {
