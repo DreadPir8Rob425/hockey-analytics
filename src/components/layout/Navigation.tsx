@@ -16,18 +16,18 @@ const Navigation = () => {
   ];
 
   return (
-    <nav className="bg-white shadow-xl border-b-2 border-blue-100 sticky top-0 z-50">
+    <nav className="bg-white shadow-ice border-b-2 border-blue-100 sticky top-0 z-50" style={{background: 'var(--gradient-hero)'}}>
       <div className="container mx-auto px-6">
         <div className="flex justify-between items-center h-20">
           <Link href="/" className="flex items-center space-x-4 group">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl group-hover:shadow-2xl transition-all duration-300 group-hover:scale-110">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-ice group-hover:shadow-2xl transition-all duration-300 group-hover:scale-110" style={{background: 'var(--gradient-navy)'}}>
               <span className="text-white font-bold text-2xl">🏒</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-2xl font-black text-slate-800">
+              <span className="text-2xl font-black" style={{color: 'var(--deep-navy)'}}>
                 Hockey Analytics
               </span>
-              <span className="text-sm text-slate-500 font-bold">
+              <span className="text-sm font-bold" style={{color: 'var(--professional-blue)'}}>
                 Advanced Statistics Platform
               </span>
             </div>
@@ -39,7 +39,19 @@ const Navigation = () => {
               <Link
                 key={item.href}
                 href={item.href}
-                className="relative text-slate-700 hover:text-white px-5 py-3 rounded-xl text-sm font-bold transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-600 hover:shadow-lg hover:scale-105 group"
+                className="relative px-5 py-3 rounded-xl text-sm font-bold transition-all duration-200 hover:shadow-lg hover:scale-105 group"
+                style={{
+                  color: 'var(--steel-gray)',
+                  '--hover-bg': 'var(--gradient-secondary)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--gradient-secondary)';
+                  e.currentTarget.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--steel-gray)';
+                }}
               >
                 <span className="relative z-10">{item.label}</span>
               </Link>
@@ -50,7 +62,8 @@ const Navigation = () => {
           <div className="md:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white hover:shadow-xl transition-all duration-200 flex items-center justify-center hover:scale-110"
+              className="w-12 h-12 rounded-2xl text-white hover:shadow-xl transition-all duration-200 flex items-center justify-center hover:scale-110"
+              style={{background: 'var(--gradient-secondary)'}}
               aria-label="Toggle menu"
             >
               <svg
@@ -81,13 +94,22 @@ const Navigation = () => {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t-2 border-blue-100 bg-white">
+          <div className="md:hidden py-4 border-t-2 border-blue-100" style={{background: 'var(--gradient-hero)'}}>
             <div className="space-y-2">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="block text-slate-700 hover:text-white hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-600 px-4 py-3 rounded-xl text-base font-bold transition-all duration-200 mx-2 hover:shadow-lg"
+                  className="block px-4 py-3 rounded-xl text-base font-bold transition-all duration-200 mx-2 hover:shadow-lg"
+                  style={{color: 'var(--steel-gray)'}}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--gradient-secondary)';
+                    e.currentTarget.style.color = 'white';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = 'var(--steel-gray)';
+                  }}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.label}

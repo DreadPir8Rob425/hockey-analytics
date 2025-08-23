@@ -4,24 +4,24 @@ import Navigation from '@/components/layout/Navigation';
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen gradient-hero">
       <Navigation />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-12 text-center">
           <div className="inline-flex items-center space-x-4 mb-6">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 rounded-full shadow-ice flex items-center justify-center" style={{background: 'var(--gradient-navy)'}}>
               <span className="text-white font-bold text-xl">🏒</span>
             </div>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-5xl font-bold bg-gradient-to-r bg-clip-text text-transparent" style={{backgroundImage: 'linear-gradient(135deg, var(--deep-navy) 0%, var(--professional-blue) 100%)'}}>
               Hockey Analytics Dashboard
             </h1>
           </div>
-          <p className="text-xl data-text-secondary max-w-3xl mx-auto">
+          <p className="text-xl max-w-3xl mx-auto" style={{color: 'var(--steel-gray)'}}>
             Comprehensive analytics and insights for hockey performance data with advanced statistical modeling
           </p>
-          <div className="mt-4 inline-flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-full border border-blue-200">
+          <div className="mt-4 inline-flex items-center space-x-2 px-4 py-2 rounded-full border" style={{background: 'var(--ice-blue)', borderColor: 'var(--ice-blue-dark)'}}>
             <span className="text-sm">✨</span>
-            <span className="text-sm font-medium text-blue-700">
+            <span className="text-sm font-medium" style={{color: 'var(--professional-blue)'}}>
               Real-time data • Advanced metrics • Interactive visualizations
             </span>
           </div>
@@ -30,11 +30,11 @@ export default function Home() {
         <Suspense fallback={
           <div className="flex flex-col items-center justify-center py-20">
             <div className="relative mb-6">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600"></div>
-              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-purple-600 opacity-20 animate-pulse"></div>
+              <div className="animate-spin rounded-full h-16 w-16 border-4" style={{borderColor: 'var(--ice-blue-dark)', borderTopColor: 'var(--professional-blue)'}}></div>
+              <div className="absolute inset-0 rounded-full opacity-20 animate-pulse" style={{background: 'var(--gradient-secondary)'}}></div>
             </div>
-            <p className="text-lg font-medium data-text-secondary">Loading dashboard...</p>
-            <p className="text-sm data-text-muted">Preparing your analytics overview</p>
+            <p className="text-lg font-medium" style={{color: 'var(--deep-navy)'}}>Loading dashboard...</p>
+            <p className="text-sm" style={{color: 'var(--steel-gray)'}}>Preparing your analytics overview</p>
           </div>
         }>
           <DashboardOverview />

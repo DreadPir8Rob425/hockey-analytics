@@ -21,22 +21,41 @@ html, body, #__next, [data-theme] {
   --background: #ffffff;
   --foreground: #1e293b;
   
-  /* Enhanced color variables for better contrast */
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #64748b;
-  --text-accent: #3b82f6;
+  /* Hockey/NHL-inspired color palette */
+  --text-primary: #1a1a1a;          /* Deep charcoal for primary text */
+  --text-secondary: #2d3748;        /* Dark gray for secondary text */
+  --text-muted: #718096;            /* Muted gray for less important text */
+  --text-accent: #c53030;           /* Hockey red for accents */
   
-  /* Modern gradients */
-  --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-  --gradient-secondary: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
-  --gradient-success: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
-  --gradient-card: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  /* Professional NHL-inspired color scheme */
+  --ice-blue: #f0f8ff;             /* Very light ice blue */
+  --ice-blue-dark: #e1ecf4;        /* Subtle ice blue */
+  --ice-blue-medium: #c8daea;      /* Medium ice blue */
+  --professional-blue: #2b6cb0;    /* Professional blue */
+  --hockey-red: #c53030;           /* Classic hockey red - used sparingly */
+  --hockey-red-dark: #9b2c2c;      /* Darker red - used sparingly */
+  --rink-white: #ffffff;           /* Pure white like ice rink */
+  --steel-gray: #4a5568;           /* Steel gray like hockey equipment */
+  --steel-gray-light: #718096;     /* Lighter steel gray */
+  --steel-gray-dark: #2d3748;      /* Darker steel gray */
+  --gold-highlight: #d69e2e;       /* Gold for achievements/highlights */
+  --deep-navy: #1a202c;            /* Deep navy for sophistication */
+  --midnight-black: #0f1419;       /* Midnight black */
   
-  /* Shadows */
-  --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-medium: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-large: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  /* Professional NHL-themed gradients */
+  --gradient-primary: linear-gradient(135deg, #f0f8ff 0%, #e1ecf4 100%);      /* Subtle ice gradient */
+  --gradient-secondary: linear-gradient(135deg, #2b6cb0 0%, #1a202c 100%);    /* Professional blue to navy */
+  --gradient-success: linear-gradient(135deg, #38a169 0%, #2f855a 100%);      /* Green for success */
+  --gradient-card: linear-gradient(145deg, #ffffff 0%, #f7fafc 100%);         /* Subtle card gradient */
+  --gradient-hero: linear-gradient(135deg, #f0f8ff 0%, #ffffff 50%, #f8fafc 100%); /* Very subtle hero gradient */
+  --gradient-accent: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);       /* Steel gradient */
+  --gradient-navy: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);         /* Navy gradient */
+  
+  /* Enhanced shadows with hockey theme */
+  --shadow-soft: 0 4px 6px -1px rgba(26, 32, 44, 0.1), 0 2px 4px -1px rgba(26, 32, 44, 0.06);
+  --shadow-medium: 0 10px 15px -3px rgba(26, 32, 44, 0.1), 0 4px 6px -2px rgba(26, 32, 44, 0.05);
+  --shadow-large: 0 20px 25px -5px rgba(26, 32, 44, 0.1), 0 10px 10px -5px rgba(26, 32, 44, 0.04);
+  --shadow-ice: 0 8px 32px rgba(182, 219, 255, 0.3), 0 4px 16px rgba(182, 219, 255, 0.2);
 }
 
 /* Removed Tailwind v4 @theme directive that was causing dark mode conflicts */
@@ -144,4 +163,128 @@ body {
 .hover-lift:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-large);
+}
+
+/* Hockey-themed utility classes */
+.gradient-hero {
+  background: var(--gradient-hero);
+}
+
+.gradient-accent {
+  background: var(--gradient-accent);
+}
+
+.shadow-ice {
+  box-shadow: var(--shadow-ice);
+}
+
+/* Hockey-themed card variations */
+.ice-card {
+  background: var(--gradient-primary);
+  border: 1px solid rgba(182, 219, 255, 0.3);
+  box-shadow: var(--shadow-ice);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ice-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-ice), var(--shadow-medium);
+}
+
+.hockey-red-card {
+  background: linear-gradient(145deg, #fff5f5 0%, #fed7d7 100%);
+  border: 1px solid rgba(197, 48, 48, 0.2);
+  box-shadow: 0 4px 6px -1px rgba(197, 48, 48, 0.1);
+}
+
+.gold-card {
+  background: linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid rgba(214, 158, 46, 0.2);
+  box-shadow: 0 4px 6px -1px rgba(214, 158, 46, 0.1);
+}
+
+/* Hockey-themed text colors */
+.text-hockey-red {
+  color: var(--hockey-red) !important;
+}
+
+.text-ice-blue {
+  color: #2b6cb0 !important;
+}
+
+.text-steel-gray {
+  color: var(--steel-gray) !important;
+}
+
+.text-gold {
+  color: var(--gold-highlight) !important;
+}
+
+/* Hockey-themed animations and effects */
+.hockey-puck {
+  width: 12px;
+  height: 12px;
+  background: var(--midnight-black);
+  border-radius: 50%;
+  position: relative;
+  animation: puck-slide 3s infinite ease-in-out;
+}
+
+@keyframes puck-slide {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(10px); }
+}
+
+.rink-lines {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--hockey-red) 2%,
+    var(--hockey-red) 3%,
+    transparent 4%,
+    transparent 96%,
+    var(--hockey-red) 97%,
+    var(--hockey-red) 98%,
+    transparent 100%
+  );
+}
+
+/* NHL team-inspired accent colors */
+.accent-bruins { color: #ffb81c !important; background: #1a1a1a; }
+.accent-canadiens { color: #af1e2d !important; background: #192168; }
+.accent-rangers { color: #0038a8 !important; background: #ce1126; }
+.accent-blackhawks { color: #cf0a2c !important; background: #000000; }
+.accent-lightning { color: #002868 !important; background: #ffffff; }
+.accent-penguins { color: #000000 !important; background: #fcb514; }
+
+/* Enhanced hover effects for hockey theme */
+.hockey-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.hockey-hover:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.hockey-hover:hover:before {
+  left: 100%;
+}
+
+.hockey-hover:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-ice);
 }

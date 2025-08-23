@@ -160,24 +160,24 @@ export default function GamesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen gradient-hero">
       <Navigation />
       <div className="container mx-auto px-4 py-8">
       <div className="mb-8 text-center">
         <div className="inline-flex items-center space-x-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full shadow-ice flex items-center justify-center" style={{background: 'var(--gradient-navy)'}}>
             <span className="text-white font-bold text-lg">🏒</span>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-gradient-to-r bg-clip-text text-transparent" style={{backgroundImage: 'linear-gradient(135deg, var(--deep-navy) 0%, var(--professional-blue) 100%)'}}>
             Hockey Games
           </h1>
         </div>
-        <p className="text-lg data-text-secondary">
-          Showing <span className="font-bold data-text">{games.length}</span> of <span className="font-bold data-text">{totalCount.toLocaleString()}</span> games
+        <p className="text-lg" style={{color: 'var(--steel-gray)'}}>
+          Showing <span className="font-bold" style={{color: 'var(--deep-navy)'}}>{games.length}</span> of <span className="font-bold" style={{color: 'var(--deep-navy)'}}>{totalCount.toLocaleString()}</span> games
         </p>
-        <div className="mt-3 inline-flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-full border border-blue-200">
+        <div className="mt-3 inline-flex items-center space-x-2 px-4 py-2 rounded-full border" style={{background: 'var(--ice-blue)', borderColor: 'var(--ice-blue-dark)'}}>
           <span className="text-lg">💡</span>
-          <span className="text-sm font-medium text-blue-700">
+          <span className="text-sm font-medium" style={{color: 'var(--hockey-red)'}}>
             Click on any game to view detailed analytics and advanced statistics
           </span>
         </div>
@@ -198,7 +198,19 @@ export default function GamesPage() {
               id="team"
               value={filters.team}
               onChange={(e) => setFilters(prev => ({ ...prev, team: e.target.value }))}
-              className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white data-text transition-all duration-200 hover:border-blue-300"
+              className="w-full border-2 rounded-xl px-4 py-3 focus:ring-2 bg-white data-text transition-all duration-200"
+              style={{
+                borderColor: 'var(--ice-blue-dark)',
+                '--tw-ring-color': 'var(--hockey-red)'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--hockey-red)';
+                e.target.style.boxShadow = '0 0 0 2px rgba(197, 48, 48, 0.2)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'var(--ice-blue-dark)';
+                e.target.style.boxShadow = 'none';
+              }}
             >
               <option value="">All Teams</option>
               {availableTeams.map(team => (
@@ -215,7 +227,19 @@ export default function GamesPage() {
               id="season"
               value={filters.season}
               onChange={(e) => setFilters(prev => ({ ...prev, season: e.target.value }))}
-              className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white data-text transition-all duration-200 hover:border-blue-300"
+              className="w-full border-2 rounded-xl px-4 py-3 focus:ring-2 bg-white data-text transition-all duration-200"
+              style={{
+                borderColor: 'var(--ice-blue-dark)',
+                '--tw-ring-color': 'var(--hockey-red)'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--hockey-red)';
+                e.target.style.boxShadow = '0 0 0 2px rgba(197, 48, 48, 0.2)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'var(--ice-blue-dark)';
+                e.target.style.boxShadow = 'none';
+              }}
             >
               <option value="">All Seasons</option>
               <option value="2024">2024-25</option>
@@ -253,18 +277,27 @@ export default function GamesPage() {
       {loading && games.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600"></div>
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-purple-600 opacity-20 animate-pulse"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-4" style={{borderColor: 'var(--ice-blue-dark)', borderTopColor: 'var(--hockey-red)'}}></div>
+            <div className="absolute inset-0 rounded-full opacity-20 animate-pulse" style={{background: 'var(--gradient-secondary)'}}></div>
           </div>
-          <p className="mt-4 text-lg font-medium data-text-secondary">Loading games data...</p>
-          <p className="text-sm data-text-muted">Please wait while we fetch the latest game statistics</p>
+          <p className="mt-4 text-lg font-medium" style={{color: 'var(--deep-navy)'}}>Loading games data...</p>
+          <p className="text-sm" style={{color: 'var(--steel-gray)'}}>Please wait while we fetch the latest game statistics</p>
         </div>
       ) : (
         <div className="space-y-6">
           {games.map((game) => (
             <div 
               key={game.id} 
-              className="modern-card hover-lift cursor-pointer rounded-xl p-6 group border-l-4 border-l-blue-500 hover:border-l-purple-500 transition-all duration-300"
+              className="modern-card hover-lift cursor-pointer rounded-xl p-6 group border-l-4 transition-all duration-300"
+              style={{
+                borderLeftColor: 'var(--ice-blue-dark)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderLeftColor = 'var(--hockey-red)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderLeftColor = 'var(--ice-blue-dark)';
+              }}
               onClick={() => handleGameClick(game.id)}
             >
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
@@ -319,19 +352,19 @@ export default function GamesPage() {
                 <div className="lg:col-span-4">
                   <h4 className="text-sm font-semibold data-text-secondary mb-3 uppercase tracking-wide">📊 Advanced Metrics</h4>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-blue-50 rounded-lg p-3 text-center">
-                      <div className="text-lg font-bold text-blue-600">{(game.corsi_percentage * 100).toFixed(1)}%</div>
+                    <div className="ice-card rounded-lg p-3 text-center">
+                      <div className="text-lg font-bold" style={{color: 'var(--hockey-red)'}}>{(game.corsi_percentage * 100).toFixed(1)}%</div>
                       <div className="text-xs data-text-muted font-medium">Corsi</div>
                     </div>
-                    <div className="bg-purple-50 rounded-lg p-3 text-center">
-                      <div className="text-lg font-bold text-purple-600">{(game.fenwick_percentage * 100).toFixed(1)}%</div>
+                    <div className="ice-card rounded-lg p-3 text-center">
+                      <div className="text-lg font-bold" style={{color: 'var(--deep-navy)'}}>{(game.fenwick_percentage * 100).toFixed(1)}%</div>
                       <div className="text-xs data-text-muted font-medium">Fenwick</div>
                     </div>
-                    <div className="bg-green-50 rounded-lg p-3 text-center">
+                    <div className="ice-card rounded-lg p-3 text-center">
                       <div className="text-sm font-bold data-text">{game.face_offs_won_for}-{game.face_offs_won_against}</div>
                       <div className="text-xs data-text-muted font-medium">Face-offs</div>
                     </div>
-                    <div className="bg-orange-50 rounded-lg p-3 text-center">
+                    <div className="ice-card rounded-lg p-3 text-center">
                       <div className="text-sm font-bold data-text">{game.hits_for}-{game.hits_against}</div>
                       <div className="text-xs data-text-muted font-medium">Hits</div>
                     </div>
@@ -341,7 +374,7 @@ export default function GamesPage() {
               
               {/* Hover indicator */}
               <div className="mt-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                <span className="text-sm font-medium px-3 py-1 rounded-full" style={{color: 'var(--hockey-red)', background: 'var(--ice-blue)'}}>
                   👆 Click to view detailed analytics
                 </span>
               </div>
@@ -354,7 +387,16 @@ export default function GamesPage() {
               <button
                 onClick={loadMore}
                 disabled={loading}
-                className="relative bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="relative text-white font-semibold px-8 py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                style={{background: 'var(--gradient-secondary)'}}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.background = 'var(--hockey-red-dark)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--gradient-secondary)';
+                }}
               >
                 {loading ? (
                   <div className="flex items-center space-x-2">

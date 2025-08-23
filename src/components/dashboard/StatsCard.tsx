@@ -10,41 +10,41 @@ interface StatsCardProps {
 
 const StatsCard = ({ title, value, icon, trend }: StatsCardProps) => {
   return (
-    <div className="modern-card hover-lift group relative overflow-hidden rounded-xl p-6">
+    <div className="ice-card hover-lift group relative overflow-hidden rounded-xl p-6">
       {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent pointer-events-none"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent pointer-events-none"></div>
       
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4">
           <div className="flex-1">
-            <p className="text-sm font-semibold data-text-muted uppercase tracking-wide">
+            <p className="text-sm font-semibold uppercase tracking-wide" style={{color: 'var(--steel-gray)'}}>
               {title}
             </p>
-            <p className="text-3xl font-bold data-text mt-2 group-hover:scale-105 transition-transform duration-300">
+            <p className="text-3xl font-bold mt-2 group-hover:scale-105 transition-transform duration-300" style={{color: 'var(--deep-navy)'}}>
               {value}
             </p>
           </div>
           <div className="ml-4">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg group-hover:shadow-xl transition-shadow duration-300" style={{background: 'var(--gradient-navy)'}}>
               {icon}
             </div>
           </div>
         </div>
         
         {trend && trend.value !== 0 && (
-          <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
+          <div className="flex items-center justify-between pt-4 border-t" style={{borderColor: 'rgba(182, 219, 255, 0.3)'}}>
             <div
-              className={`flex items-center text-sm font-semibold ${
-                trend.isPositive
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-red-500 dark:text-red-400'
-              }`}
+              className="flex items-center text-sm font-semibold"
+              style={{
+                color: trend.isPositive ? '#2f855a' : 'var(--hockey-red)'
+              }}
             >
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 ${
-                trend.isPositive
-                  ? 'bg-emerald-100 dark:bg-emerald-900'
-                  : 'bg-red-100 dark:bg-red-900'
-              }`}>
+              <div 
+                className="w-6 h-6 rounded-full flex items-center justify-center mr-2"
+                style={{
+                  backgroundColor: trend.isPositive ? '#f0fff4' : '#fff5f5'
+                }}
+              >
                 <svg
                   className={`w-3 h-3 ${
                     trend.isPositive ? 'rotate-0' : 'rotate-180'
@@ -61,7 +61,7 @@ const StatsCard = ({ title, value, icon, trend }: StatsCardProps) => {
               </div>
               {Math.abs(trend.value)}%
             </div>
-            <span className="text-xs data-text-muted font-medium">
+            <span className="text-xs font-medium" style={{color: 'var(--steel-gray)'}}>
               vs last period
             </span>
           </div>

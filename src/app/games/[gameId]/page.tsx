@@ -106,7 +106,6 @@ export default function GameDetailsPage() {
     return (
       <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-slate-100 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300">
         <div className={`inline-flex items-center px-4 py-2 rounded-full text-white font-bold text-sm mb-6 ${getBadgeStyle()}`}>
-          <span className="mr-2">⚡</span>
           {title}
         </div>
         
@@ -116,7 +115,7 @@ export default function GameDetailsPage() {
               <div className="text-3xl font-black text-emerald-800 mb-2">
                 {situation.goals_for}<span className="text-emerald-400 mx-2">-</span>{situation.goals_against}
               </div>
-              <div className="text-emerald-600 font-bold text-sm uppercase tracking-wider">🥅 Goals</div>
+              <div className="text-emerald-600 font-bold text-sm uppercase tracking-wider">Goals</div>
             </div>
           </div>
           
@@ -125,7 +124,7 @@ export default function GameDetailsPage() {
               <div className="text-3xl font-black text-blue-800 mb-2">
                 {situation.shots_on_goal_for}<span className="text-blue-400 mx-2">-</span>{situation.shots_on_goal_against}
               </div>
-              <div className="text-blue-600 font-bold text-sm uppercase tracking-wider">🎯 Shots</div>
+              <div className="text-blue-600 font-bold text-sm uppercase tracking-wider">Shots</div>
             </div>
           </div>
           
@@ -134,7 +133,7 @@ export default function GameDetailsPage() {
               <div className="text-3xl font-black text-purple-800 mb-2">
                 {situation.x_goals_for?.toFixed(1)}<span className="text-purple-400 mx-2">-</span>{situation.x_goals_against?.toFixed(1)}
               </div>
-              <div className="text-purple-600 font-bold text-sm uppercase tracking-wider">📊 xGoals</div>
+              <div className="text-purple-600 font-bold text-sm uppercase tracking-wider">xGoals</div>
             </div>
           </div>
           
@@ -143,7 +142,7 @@ export default function GameDetailsPage() {
               <div className="text-3xl font-black text-orange-800 mb-2">
                 {(situation.corsi_percentage * 100).toFixed(1)}%
               </div>
-              <div className="text-orange-600 font-bold text-sm uppercase tracking-wider">📈 Corsi</div>
+              <div className="text-orange-600 font-bold text-sm uppercase tracking-wider">Corsi</div>
             </div>
           </div>
         </div>
@@ -175,7 +174,9 @@ export default function GameDetailsPage() {
           <div className="bg-white rounded-3xl p-12 shadow-2xl border border-red-200 text-center max-w-2xl mx-auto">
             <div className="mb-8">
               <div className="w-24 h-24 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                <span className="text-4xl">⚠️</span>
+                <div className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center">
+                  <span className="text-white font-bold text-xl">!</span>
+                </div>
               </div>
               <h1 className="text-4xl font-black text-red-700 mb-4">Game Not Found</h1>
               <p className="text-red-600 text-xl font-medium">{error || 'The requested game could not be found'}</p>
@@ -191,7 +192,7 @@ export default function GameDetailsPage() {
                 onClick={() => window.location.reload()}
                 className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold px-8 py-4 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
               >
-                🔄 Retry
+                Retry
               </button>
             </div>
           </div>
@@ -232,13 +233,12 @@ export default function GameDetailsPage() {
                       ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white' 
                       : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
                   }`}>
-                    {game.home_or_away === 'HOME' ? '🏠 HOME GAME' : '✈️ AWAY GAME'}
+                    {game.home_or_away === 'HOME' ? 'HOME GAME' : 'AWAY GAME'}
                   </div>
                 </div>
                 <div className="flex items-center space-x-6">
-                  <p className="text-xl text-slate-600 font-bold flex items-center space-x-2">
-                    <span>📅</span>
-                    <span>{formatDate(game.game_date)}</span>
+                  <p className="text-xl text-slate-600 font-bold">
+                    {formatDate(game.game_date)}
                   </p>
                   <div className="w-3 h-3 bg-slate-300 rounded-full"></div>
                   <p className="text-slate-500 font-semibold">Game ID: {game.game_id}</p>
@@ -252,7 +252,7 @@ export default function GameDetailsPage() {
                     {game.goals_for} - {game.goals_against}
                   </div>
                   <div className="text-base text-slate-600 font-bold">
-                    {game.goals_for > game.goals_against ? '🏆 Victory' : game.goals_for < game.goals_against ? '😔 Loss' : '🤝 Tie'}
+                    {game.goals_for > game.goals_against ? 'Victory' : game.goals_for < game.goals_against ? 'Loss' : 'Tie'}
                   </div>
                 </div>
               </div>
@@ -262,13 +262,13 @@ export default function GameDetailsPage() {
 
         {/* Tabs */}
         <div className="mb-8">
-          <div className="bg-white rounded-2xl p-3 shadow-xl border-2 border-slate-100">
-            <nav className="flex space-x-2">
-              {[
-                { id: 'overview', label: '📊 Overview', icon: '📊' },
-                { id: 'situations', label: '⚡ Situations', icon: '⚡' },
-                { id: 'analytics', label: '🔬 Advanced Analytics', icon: '🔬' },
-                { id: 'periods', label: '⏰ Period Breakdown', icon: '⏰' },
+        <div className="bg-white rounded-2xl p-3 shadow-xl border-2 border-slate-100">
+          <nav className="flex space-x-2">
+            {[
+              { id: 'overview', label: 'Overview' },
+              { id: 'situations', label: 'Situations' },
+              { id: 'analytics', label: 'Advanced Analytics' },
+              { id: 'periods', label: 'Period Breakdown' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -292,36 +292,36 @@ export default function GameDetailsPage() {
             {/* Basic Stats */}
             <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-slate-100">
               <h3 className="text-2xl font-black text-slate-800 mb-6 flex items-center space-x-3">
-                <span className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-blue-600 flex items-center justify-center text-white shadow-lg">🏒</span>
+                <span className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-blue-600 flex items-center justify-center text-white shadow-lg text-lg font-black">G</span>
                 <span>Game Statistics</span>
               </h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">🎯 Shots on Goal</span>
+                  <span className="text-slate-600 font-bold">Shots on Goal</span>
                   <span className="text-slate-900 font-black text-xl">{game.shots_on_goal_for} - {game.shots_on_goal_against}</span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">📊 Expected Goals</span>
+                  <span className="text-slate-600 font-bold">Expected Goals</span>
                   <span className="text-slate-900 font-black text-xl">{game.x_goals_for.toFixed(2)} - {game.x_goals_against.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">🎯 Shooting %</span>
+                  <span className="text-slate-600 font-bold">Shooting %</span>
                   <span className="text-blue-600 font-black text-xl">{game.analytics.shootingPercentage}%</span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">🥅 Save %</span>
+                  <span className="text-slate-600 font-bold">Save %</span>
                   <span className="text-purple-600 font-black text-xl">{game.analytics.savePercentage}%</span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">⚪ Face-off Wins</span>
+                  <span className="text-slate-600 font-bold">Face-off Wins</span>
                   <span className="text-slate-900 font-black text-xl">{game.face_offs_won_for} - {game.face_offs_won_against}</span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">💥 Hits</span>
+                  <span className="text-slate-600 font-bold">Hits</span>
                   <span className="text-slate-900 font-black text-xl">{game.hits_for} - {game.hits_against}</span>
                 </div>
                 <div className="flex justify-between items-center py-4">
-                  <span className="text-slate-600 font-bold">⏱️ Penalty Minutes</span>
+                  <span className="text-slate-600 font-bold">Penalty Minutes</span>
                   <span className="text-orange-600 font-black text-xl">{game.penalties_for} - {game.penalties_against}</span>
                 </div>
               </div>
@@ -330,38 +330,38 @@ export default function GameDetailsPage() {
             {/* Advanced Metrics */}
             <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-slate-100">
               <h3 className="text-2xl font-black text-slate-800 mb-6 flex items-center space-x-3">
-                <span className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white shadow-lg">🔬</span>
+                <span className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white shadow-lg text-lg font-black">A</span>
                 <span>Advanced Metrics</span>
               </h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">📊 Corsi %</span>
+                  <span className="text-slate-600 font-bold">Corsi %</span>
                   <span className="text-blue-600 font-black text-xl">{(game.corsi_percentage * 100).toFixed(1)}%</span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">📈 Fenwick %</span>
+                  <span className="text-slate-600 font-bold">Fenwick %</span>
                   <span className="text-purple-600 font-black text-xl">{(game.fenwick_percentage * 100).toFixed(1)}%</span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">⚙️ PDO</span>
+                  <span className="text-slate-600 font-bold">PDO</span>
                   <span className={`font-black text-xl ${
                     parseFloat(game.analytics.pdo) > 100 ? 'text-green-600' : 'text-orange-600'
                   }`}>{game.analytics.pdo}</span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">🎯 xG Differential</span>
+                  <span className="text-slate-600 font-bold">xG Differential</span>
                   <span className={`font-black text-xl ${parseFloat(game.analytics.xgDifferential) > 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {parseFloat(game.analytics.xgDifferential) > 0 ? '+' : ''}{game.analytics.xgDifferential}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">🥅 Goal Differential</span>
+                  <span className="text-slate-600 font-bold">Goal Differential</span>
                   <span className={`font-black text-xl ${game.analytics.actualDifferential > 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {game.analytics.actualDifferential > 0 ? '+' : ''}{game.analytics.actualDifferential}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-4">
-                  <span className="text-slate-600 font-bold">🚀 xG Outperformance</span>
+                  <span className="text-slate-600 font-bold">xG Outperformance</span>
                   <span className={`font-black text-xl ${parseFloat(game.analytics.xgOutperformance) > 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {parseFloat(game.analytics.xgOutperformance) > 0 ? '+' : ''}{game.analytics.xgOutperformance}
                   </span>
@@ -384,27 +384,27 @@ export default function GameDetailsPage() {
           <div className="space-y-8">
             <div className="bg-white rounded-2xl p-10 shadow-xl border-2 border-slate-100">
               <h3 className="text-3xl font-black text-slate-800 mb-8 flex items-center space-x-3">
-                <span className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl shadow-lg">🔬</span>
+                <span className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl shadow-lg font-black">P</span>
                 <span>Performance Analysis</span>
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="text-center p-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl border-2 border-blue-200 shadow-lg">
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                    <span className="text-white font-bold text-2xl">⚙️</span>
+                    <span className="text-white font-bold text-2xl">PDO</span>
                   </div>
                   <div className={`text-4xl font-black mb-3 ${
                     parseFloat(game.analytics.pdo) > 100 ? 'text-blue-600' : 'text-orange-600'
                   }`}>{game.analytics.pdo}</div>
                   <div className="text-base font-black text-slate-700 mb-2">PDO</div>
                   <div className="text-sm text-slate-600 font-bold">
-                    {parseFloat(game.analytics.pdo) > 100 ? '🔼 Above Average' : '🔽 Below Average'}
+                    {parseFloat(game.analytics.pdo) > 100 ? 'Above Average' : 'Below Average'}
                   </div>
                 </div>
                 
                 <div className="text-center p-8 bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl border-2 border-green-200 shadow-lg">
                   <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                    <span className="text-white font-bold text-2xl">🎯</span>
+                    <span className="text-white font-bold text-lg">xG</span>
                   </div>
                   <div className={`text-4xl font-black mb-3 ${parseFloat(game.analytics.xgDifferential) > 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {parseFloat(game.analytics.xgDifferential) > 0 ? '+' : ''}{game.analytics.xgDifferential}
@@ -417,7 +417,7 @@ export default function GameDetailsPage() {
                 
                 <div className="text-center p-8 bg-gradient-to-br from-purple-50 to-pink-100 rounded-2xl border-2 border-purple-200 shadow-lg">
                   <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                    <span className="text-white font-bold text-2xl">🚀</span>
+                    <span className="text-white font-bold text-lg">VS</span>
                   </div>
                   <div className={`text-4xl font-black mb-3 ${parseFloat(game.analytics.xgOutperformance) > 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {parseFloat(game.analytics.xgOutperformance) > 0 ? '+' : ''}{game.analytics.xgOutperformance}
@@ -434,7 +434,7 @@ export default function GameDetailsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-slate-100">
                 <h4 className="text-2xl font-black text-slate-800 mb-6 flex items-center space-x-3">
-                  <span className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center text-white shadow-lg">📊</span>
+                  <span className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center text-white shadow-lg text-lg font-black">O</span>
                   <span>Offensive Performance</span>
                 </h4>
                 <div className="space-y-4">
@@ -455,7 +455,7 @@ export default function GameDetailsPage() {
               
               <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-slate-100">
                 <h4 className="text-2xl font-black text-slate-800 mb-6 flex items-center space-x-3">
-                  <span className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white shadow-lg">🛑</span>
+                  <span className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white shadow-lg text-lg font-black">D</span>
                   <span>Defensive Performance</span>
                 </h4>
                 <div className="space-y-4">
@@ -482,7 +482,7 @@ export default function GameDetailsPage() {
             {/* Period-by-Period Visual */}
             <div className="bg-white rounded-2xl p-10 shadow-xl border-2 border-slate-100">
               <h3 className="text-3xl font-black text-slate-800 mb-8 flex items-center space-x-3">
-                <span className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl shadow-lg">⏰</span>
+                <span className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl shadow-lg font-black">T</span>
                 <span>Period-by-Period Performance</span>
               </h3>
               {Object.keys(game.periodBreakdown).length > 0 ? (
@@ -539,7 +539,9 @@ export default function GameDetailsPage() {
               ) : (
                 <div className="text-center py-16">
                   <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                    <span className="text-3xl">📊</span>
+                    <div className="w-12 h-12 bg-slate-400 rounded-full flex items-center justify-center">
+                      <span className="text-white font-black text-xl">?</span>
+                    </div>
                   </div>
                   <p className="text-xl font-black text-slate-600">No period breakdown data available</p>
                 </div>
@@ -549,7 +551,7 @@ export default function GameDetailsPage() {
             {/* Detailed Table */}
             <div className="bg-white rounded-2xl p-10 shadow-xl border-2 border-slate-100">
               <h3 className="text-3xl font-black text-slate-800 mb-8 flex items-center space-x-3">
-                <span className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-500 to-gray-600 flex items-center justify-center text-white text-2xl shadow-lg">📋</span>
+                <span className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-500 to-gray-600 flex items-center justify-center text-white text-2xl shadow-lg font-black">S</span>
                 <span>Detailed Statistics</span>
               </h3>
               <div className="overflow-x-auto">
