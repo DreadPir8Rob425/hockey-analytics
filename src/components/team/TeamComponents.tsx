@@ -279,8 +279,9 @@ export const TeamSelect: React.FC<TeamSelectProps> = ({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={`
-          w-full px-4 py-3 rounded-xl border-2 font-semibold
+          w-full py-3 rounded-xl border-2 font-semibold
           focus:ring-2 focus:ring-offset-2 transition-all duration-200
+          ${value ? 'pl-4 pr-16' : 'px-4'}
           ${className}
         `}
         style={{
@@ -299,7 +300,7 @@ export const TeamSelect: React.FC<TeamSelectProps> = ({
       </select>
       
       {value && (
-        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+        <div className="absolute right-8 top-1/2 transform -translate-y-1/2 pointer-events-none">
           <TeamBadge team={value} size="sm" showText={false} />
         </div>
       )}
