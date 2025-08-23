@@ -17,7 +17,7 @@ export default function SandboxPage() {
             </h1>
           </div>
           <p className="text-xl max-w-3xl mx-auto" style={{color: 'var(--steel-gray)'}}>
-            Experimental features and interactive data exploration tools for advanced hockey analytics
+            Experimental features and interactive data exploration tools for hockey analytics insights
           </p>
           <div className="mt-4 inline-flex items-center space-x-2 px-4 py-2 rounded-full border" style={{background: 'var(--ice-blue)', borderColor: 'var(--ice-blue-dark)'}}>
             <span className="text-sm">🧪</span>

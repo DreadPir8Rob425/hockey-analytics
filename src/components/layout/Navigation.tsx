@@ -23,10 +23,10 @@ const Navigation = () => {
             </div>
             <div className="flex flex-col">
               <span className="text-2xl font-black" style={{color: 'var(--deep-navy)'}}>
-                Hockey Analytics
+                Cold Hard Puck
               </span>
               <span className="text-sm font-bold" style={{color: 'var(--professional-blue)'}}>
-                Advanced Statistics Platform
+                Hockey Analytics Platform
               </span>
             </div>
           </Link>

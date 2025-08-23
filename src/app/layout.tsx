@@ -14,14 +14,14 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Hockey Analytics",
-    template: "%s | Hockey Analytics"
+    default: "Cold Hard Puck",
+    template: "%s | Cold Hard Puck"
   },
-  description: "Professional NHL hockey analytics and statistics platform with advanced metrics, game analysis, and team performance insights",
-  keywords: ["NHL", "hockey", "analytics", "statistics", "Corsi", "Fenwick", "xG", "expected goals", "hockey metrics"],
-  authors: [{ name: "Hockey Analytics Team" }],
-  creator: "Hockey Analytics Platform",
-  publisher: "Hockey Analytics",
+  description: "Cold Hard Puck - Professional NHL hockey analytics and statistics platform with advanced metrics, game analysis, and team performance insights",
+  keywords: ["NHL", "hockey", "analytics", "statistics", "Corsi", "Fenwick", "xG", "expected goals", "hockey metrics", "cold hard puck"],
+  authors: [{ name: "Cold Hard Puck Team" }],
+  creator: "Cold Hard Puck",
+  publisher: "Cold Hard Puck",
   formatDetection: {
     email: false,
     address: false,
@@ -32,16 +32,16 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   openGraph: {
-    title: "Hockey Analytics",
-    description: "Professional NHL hockey analytics and statistics platform with advanced metrics and game analysis",
+    title: "Cold Hard Puck",
+    description: "Cold Hard Puck - Professional NHL hockey analytics and statistics platform with advanced metrics and game analysis",
     type: "website",
     locale: "en_US",
-    siteName: "Hockey Analytics",
+    siteName: "Cold Hard Puck",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Hockey Analytics",
-    description: "Professional NHL hockey analytics and statistics platform",
+    title: "Cold Hard Puck",
+    description: "Cold Hard Puck - Professional NHL hockey analytics and statistics platform",
   },
   robots: {
     index: true,

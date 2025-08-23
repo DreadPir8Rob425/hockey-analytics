@@ -1,6 +1,6 @@
-# Hockey Analytics Dashboard
+# Cold Hard Puck
 
-A comprehensive web application for analyzing hockey performance data, built with Next.js, TypeScript, and D3.js. This platform provides interactive visualizations, detailed statistics, and insights for players, teams, and games.
+A comprehensive hockey analytics web application built with Next.js, TypeScript, and D3.js. This platform provides interactive visualizations, detailed statistics, and insights for players, teams, and games.
 
 ## Features
 

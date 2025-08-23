@@ -1,7 +1,9 @@
 {
-  "name": "hockey-analytics",
+  "name": "cold-hard-puck",
   "version": "0.1.0",
   "private": true,
+  "description": "Cold Hard Puck - Comprehensive Hockey Analytics Platform",
+  "homepage": "https://coldhardpuck.com",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
