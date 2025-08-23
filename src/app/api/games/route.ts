@@ -5,14 +5,15 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables. Please check your .env.local file.');
-  console.error('Required variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY');
-}
 
-const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function GET(request: Request) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    const errorMessage = 'Missing Supabase environment variables. Please check your .env.local file.';
+    console.error(errorMessage);
+    return NextResponse.json({ error: errorMessage, details: 'Required variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY' }, { status: 500 });
+  }
   try {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');

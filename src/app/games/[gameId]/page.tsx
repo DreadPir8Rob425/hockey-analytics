@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Navigation from '@/components/layout/Navigation';
 import { TeamHeader, TeamVsTeam, TeamBadge, TeamStatsBar, TeamCard } from '@/components/team/TeamComponents';
 import { getTeamColors, getTeamCSSVariables } from '@/utils/teamColors';
+import { StatTooltip, StatValueWithTooltip, StatCategoryLegend } from '@/components/stats/StatTooltip';
 
 interface GameDetails {
   id: number;
@@ -117,7 +118,9 @@ export default function GameDetailsPage() {
               <div className="text-3xl font-black mb-2" style={{color: 'var(--deep-navy)'}}>
                 {situation.goals_for}<span className="mx-2" style={{color: 'var(--steel-gray)'}}>-</span>{situation.goals_against}
               </div>
-              <div className="font-bold text-sm uppercase tracking-wider" style={{color: 'var(--steel-gray)'}}>Goals</div>
+              <StatTooltip statKey="goals" value={`${situation.goals_for} - ${situation.goals_against}`}>
+                <div className="font-bold text-sm uppercase tracking-wider" style={{color: 'var(--steel-gray)'}}>Goals</div>
+              </StatTooltip>
             </div>
           </div>
           
@@ -126,7 +129,9 @@ export default function GameDetailsPage() {
               <div className="text-3xl font-black mb-2" style={{color: 'var(--deep-navy)'}}>
                 {situation.shots_on_goal_for}<span className="mx-2" style={{color: 'var(--steel-gray)'}}>-</span>{situation.shots_on_goal_against}
               </div>
-              <div className="font-bold text-sm uppercase tracking-wider" style={{color: 'var(--steel-gray)'}}>Shots</div>
+              <StatTooltip statKey="shots" value={`${situation.shots_on_goal_for} - ${situation.shots_on_goal_against}`}>
+                <div className="font-bold text-sm uppercase tracking-wider" style={{color: 'var(--steel-gray)'}}>Shots</div>
+              </StatTooltip>
             </div>
           </div>
           
@@ -135,7 +140,9 @@ export default function GameDetailsPage() {
               <div className="text-3xl font-black mb-2" style={{color: 'var(--deep-navy)'}}>
                 {situation.x_goals_for?.toFixed(1)}<span className="mx-2" style={{color: 'var(--steel-gray)'}}>-</span>{situation.x_goals_against?.toFixed(1)}
               </div>
-              <div className="font-bold text-sm uppercase tracking-wider" style={{color: 'var(--steel-gray)'}}>xGoals</div>
+              <StatTooltip statKey="expected_goals" value={`${situation.x_goals_for?.toFixed(1)} - ${situation.x_goals_against?.toFixed(1)}`}>
+                <div className="font-bold text-sm uppercase tracking-wider" style={{color: 'var(--steel-gray)'}}>xGoals</div>
+              </StatTooltip>
             </div>
           </div>
           
@@ -144,7 +151,9 @@ export default function GameDetailsPage() {
               <div className="text-3xl font-black mb-2" style={{color: 'var(--hockey-red)'}}>
                 {(situation.corsi_percentage * 100).toFixed(1)}%
               </div>
-              <div className="font-bold text-sm uppercase tracking-wider" style={{color: 'var(--steel-gray)'}}>Corsi</div>
+              <StatTooltip statKey="corsi" value={`${(situation.corsi_percentage * 100).toFixed(1)}%`}>
+                <div className="font-bold text-sm uppercase tracking-wider" style={{color: 'var(--steel-gray)'}}>Corsi</div>
+              </StatTooltip>
             </div>
           </div>
         </div>
@@ -317,31 +326,47 @@ export default function GameDetailsPage() {
               </h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">Shots on Goal</span>
+                  <StatTooltip statKey="shots" value={`${game.shots_on_goal_for} - ${game.shots_on_goal_against}`}>
+                    <span className="text-slate-600 font-bold">Shots on Goal</span>
+                  </StatTooltip>
                   <span className="text-slate-900 font-black text-xl">{game.shots_on_goal_for} - {game.shots_on_goal_against}</span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">Expected Goals</span>
+                  <StatTooltip statKey="expected_goals" value={`${game.x_goals_for.toFixed(2)} - ${game.x_goals_against.toFixed(2)}`}>
+                    <span className="text-slate-600 font-bold">Expected Goals</span>
+                  </StatTooltip>
                   <span className="text-slate-900 font-black text-xl">{game.x_goals_for.toFixed(2)} - {game.x_goals_against.toFixed(2)}</span>
                 </div>
+                <StatValueWithTooltip
+                  statKey="shooting_percentage"
+                  value={`${game.analytics.shootingPercentage}%`}
+                  label="Shooting %"
+                  className="border-b border-slate-200"
+                  valueClassName="text-deep-navy"
+                />
+                <StatValueWithTooltip
+                  statKey="save_percentage"
+                  value={`${game.analytics.savePercentage}%`}
+                  label="Save %"
+                  className="border-b border-slate-200"
+                  valueClassName="text-blue-600"
+                />
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="font-bold" style={{color: 'var(--steel-gray)'}}>Shooting %</span>
-                  <span className="font-black text-xl" style={{color: 'var(--deep-navy)'}}>{game.analytics.shootingPercentage}%</span>
-                </div>
-                <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="font-bold" style={{color: 'var(--steel-gray)'}}>Save %</span>
-                  <span className="font-black text-xl" style={{color: 'var(--professional-blue)'}}>{game.analytics.savePercentage}%</span>
-                </div>
-                <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">Face-off Wins</span>
+                  <StatTooltip statKey="face_off_percentage" value={`${game.face_offs_won_for} - ${game.face_offs_won_against}`}>
+                    <span className="text-slate-600 font-bold">Face-off Wins</span>
+                  </StatTooltip>
                   <span className="text-slate-900 font-black text-xl">{game.face_offs_won_for} - {game.face_offs_won_against}</span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">Hits</span>
+                  <StatTooltip statKey="hits" value={`${game.hits_for} - ${game.hits_against}`}>
+                    <span className="text-slate-600 font-bold">Hits</span>
+                  </StatTooltip>
                   <span className="text-slate-900 font-black text-xl">{game.hits_for} - {game.hits_against}</span>
                 </div>
                 <div className="flex justify-between items-center py-4">
-                  <span className="text-slate-600 font-bold">Penalty Minutes</span>
+                  <StatTooltip statKey="penalties" value={`${game.penalties_for} - ${game.penalties_against}`}>
+                    <span className="text-slate-600 font-bold">Penalty Minutes</span>
+                  </StatTooltip>
                   <span className="text-orange-600 font-black text-xl">{game.penalties_for} - {game.penalties_against}</span>
                 </div>
               </div>
@@ -373,26 +398,33 @@ export default function GameDetailsPage() {
                   label={`${game.team} Shooting Percentage`}
                   className="mb-4"
                 />
+                <StatValueWithTooltip
+                  statKey="pdo"
+                  value={game.analytics.pdo}
+                  label="PDO"
+                  className="border-b border-slate-200"
+                  valueClassName={parseFloat(game.analytics.pdo) > 100 ? 'text-green-600' : 'text-orange-600'}
+                />
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">PDO</span>
-                  <span className={`font-black text-xl ${
-                    parseFloat(game.analytics.pdo) > 100 ? 'text-green-600' : 'text-orange-600'
-                  }`}>{game.analytics.pdo}</span>
-                </div>
-                <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">xG Differential</span>
+                  <StatTooltip statKey="expected_goals_differential" value={game.analytics.xgDifferential}>
+                    <span className="text-slate-600 font-bold">xG Differential</span>
+                  </StatTooltip>
                   <span className={`font-black text-xl ${parseFloat(game.analytics.xgDifferential) > 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {parseFloat(game.analytics.xgDifferential) > 0 ? '+' : ''}{game.analytics.xgDifferential}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="text-slate-600 font-bold">Goal Differential</span>
+                  <StatTooltip statKey="goal_differential" value={game.analytics.actualDifferential.toString()}>
+                    <span className="text-slate-600 font-bold">Goal Differential</span>
+                  </StatTooltip>
                   <span className={`font-black text-xl ${game.analytics.actualDifferential > 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {game.analytics.actualDifferential > 0 ? '+' : ''}{game.analytics.actualDifferential}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-4">
-                  <span className="text-slate-600 font-bold">xG Outperformance</span>
+                  <StatTooltip statKey="outperformance" value={game.analytics.xgOutperformance}>
+                    <span className="text-slate-600 font-bold">xG Outperformance</span>
+                  </StatTooltip>
                   <span className={`font-black text-xl ${parseFloat(game.analytics.xgOutperformance) > 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {parseFloat(game.analytics.xgOutperformance) > 0 ? '+' : ''}{game.analytics.xgOutperformance}
                   </span>
