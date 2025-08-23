@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navigation from '@/components/layout/Navigation';
+import { TeamVsTeam, TeamSelect, TeamBadge, TeamStatsBar } from '@/components/team/TeamComponents';
+import { getAllTeamAbbreviations } from '@/utils/teamColors';
 
 interface Game {
   id: number;
@@ -194,29 +196,13 @@ export default function GamesPage() {
             <label htmlFor="team" className="block text-sm font-semibold data-text-secondary mb-3">
               🏒 Team
             </label>
-            <select
-              id="team"
+            <TeamSelect
               value={filters.team}
-              onChange={(e) => setFilters(prev => ({ ...prev, team: e.target.value }))}
-              className="w-full border-2 rounded-xl px-4 py-3 focus:ring-2 bg-white data-text transition-all duration-200"
-              style={{
-                borderColor: 'var(--ice-blue-dark)',
-                '--tw-ring-color': 'var(--hockey-red)'
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = 'var(--hockey-red)';
-                e.target.style.boxShadow = '0 0 0 2px rgba(197, 48, 48, 0.2)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'var(--ice-blue-dark)';
-                e.target.style.boxShadow = 'none';
-              }}
-            >
-              <option value="">All Teams</option>
-              {availableTeams.map(team => (
-                <option key={team} value={team}>{team}</option>
-              ))}
-            </select>
+              onChange={(team) => setFilters(prev => ({ ...prev, team }))}
+              teams={availableTeams}
+              placeholder="All Teams"
+              className="focus:ring-2 focus:ring-offset-2"
+            />
           </div>
 
           <div>
@@ -285,33 +271,47 @@ export default function GamesPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {games.map((game) => (
+          {games.map((game) => {
+            // Determine home/away teams for proper TeamVsTeam display
+            const homeTeam = game.home_or_away === 'HOME' ? game.team : game.opposing_team;
+            const awayTeam = game.home_or_away === 'HOME' ? game.opposing_team : game.team;
+            const homeScore = game.home_or_away === 'HOME' ? game.goals_for : game.goals_against;
+            const awayScore = game.home_or_away === 'HOME' ? game.goals_against : game.goals_for;
+            
+            return (
             <div 
               key={game.id} 
-              className="modern-card hover-lift cursor-pointer rounded-xl p-6 group border-l-4 transition-all duration-300"
+              className="modern-card hover-lift cursor-pointer rounded-xl overflow-hidden group transition-all duration-300 border-2"
               style={{
-                borderLeftColor: 'var(--ice-blue-dark)'
+                borderColor: 'var(--ice-blue-dark)'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderLeftColor = 'var(--hockey-red)';
+                e.currentTarget.style.borderColor = 'var(--hockey-red)';
+                e.currentTarget.style.boxShadow = '0 8px 25px rgba(197, 48, 48, 0.15)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderLeftColor = 'var(--ice-blue-dark)';
+                e.currentTarget.style.borderColor = 'var(--ice-blue-dark)';
+                e.currentTarget.style.boxShadow = 'none';
               }}
               onClick={() => handleGameClick(game.id)}
             >
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-                {/* Game Info */}
-                <div className="lg:col-span-4">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-2xl font-bold data-text group-hover:text-blue-600 transition-colors">{game.team}</span>
-                      <span className="text-xl data-text-muted font-medium">vs</span>
-                      <span className="text-2xl font-bold data-text group-hover:text-purple-600 transition-colors">{game.opposing_team}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3 mb-2">
-                    <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
+              {/* Main Team Matchup */}
+              <div className="p-6 pb-4">
+                <TeamVsTeam
+                  homeTeam={homeTeam}
+                  awayTeam={awayTeam}
+                  homeScore={homeScore}
+                  awayScore={awayScore}
+                  date={formatDate(game.game_date)}
+                  className="border-0 shadow-none bg-transparent p-0"
+                />
+              </div>
+
+              {/* Game Details */}
+              <div className="px-6 pb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
                       game.home_or_away === 'HOME' 
                         ? 'bg-emerald-100 text-emerald-800' 
                         : 'bg-blue-100 text-blue-800'
@@ -322,64 +322,64 @@ export default function GamesPage() {
                       {game.season}-{(game.season + 1).toString().slice(-2)}
                     </span>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-sm data-text-secondary font-medium">📅 {formatDate(game.game_date)}</p>
-                    <p className="text-xs data-text-muted">Game #{game.game_id} • ⏱️ {formatTime(game.ice_time)}</p>
+                  <div className="text-xs data-text-muted">
+                    Game #{game.game_id} • ⏱️ {formatTime(game.ice_time)}
                   </div>
                 </div>
+              </div>
 
-                {/* Score & Key Stats */}
-                <div className="lg:col-span-4 text-center">
-                  <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4">
-                    <h4 className="text-sm font-semibold data-text-secondary mb-2 uppercase tracking-wide">Final Score</h4>
-                    <div className={`text-4xl font-bold mb-2 ${getResultColor(game.goals_for, game.goals_against)}`}>
-                      {game.goals_for} - {game.goals_against}
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="text-center">
-                        <div className="data-text font-bold text-lg">{game.shots_on_goal_for} - {game.shots_on_goal_against}</div>
-                        <div className="data-text-muted text-xs font-medium">Shots on Goal</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="data-text font-bold text-lg">{game.x_goals_for.toFixed(1)} - {game.x_goals_against.toFixed(1)}</div>
-                        <div className="data-text-muted text-xs font-medium">Expected Goals</div>
-                      </div>
-                    </div>
-                  </div>
+              {/* Team-Colored Stats Section */}
+              <div className="px-6 pb-4">
+                <h4 className="text-sm font-semibold data-text-secondary mb-4 uppercase tracking-wide">📊 Advanced Metrics</h4>
+                <div className="space-y-3">
+                  <TeamStatsBar
+                    team={game.team}
+                    value={game.corsi_percentage * 100}
+                    label={`${game.team} Corsi %`}
+                    className="mb-2"
+                  />
+                  <TeamStatsBar
+                    team={game.team}
+                    value={game.fenwick_percentage * 100}
+                    label={`${game.team} Fenwick %`}
+                    className="mb-2"
+                  />
                 </div>
+              </div>
 
-                {/* Advanced Stats */}
-                <div className="lg:col-span-4">
-                  <h4 className="text-sm font-semibold data-text-secondary mb-3 uppercase tracking-wide">📊 Advanced Metrics</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="ice-card rounded-lg p-3 text-center">
-                      <div className="text-lg font-bold" style={{color: 'var(--hockey-red)'}}>{(game.corsi_percentage * 100).toFixed(1)}%</div>
-                      <div className="text-xs data-text-muted font-medium">Corsi</div>
-                    </div>
-                    <div className="ice-card rounded-lg p-3 text-center">
-                      <div className="text-lg font-bold" style={{color: 'var(--deep-navy)'}}>{(game.fenwick_percentage * 100).toFixed(1)}%</div>
-                      <div className="text-xs data-text-muted font-medium">Fenwick</div>
-                    </div>
-                    <div className="ice-card rounded-lg p-3 text-center">
-                      <div className="text-sm font-bold data-text">{game.face_offs_won_for}-{game.face_offs_won_against}</div>
-                      <div className="text-xs data-text-muted font-medium">Face-offs</div>
-                    </div>
-                    <div className="ice-card rounded-lg p-3 text-center">
-                      <div className="text-sm font-bold data-text">{game.hits_for}-{game.hits_against}</div>
-                      <div className="text-xs data-text-muted font-medium">Hits</div>
-                    </div>
+              {/* Additional Stats Grid */}
+              <div className="px-6 pb-4">
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <div className="ice-card rounded-lg p-2">
+                    <div className="text-sm font-bold data-text">{game.shots_on_goal_for}-{game.shots_on_goal_against}</div>
+                    <div className="text-xs data-text-muted font-medium">SOG</div>
+                  </div>
+                  <div className="ice-card rounded-lg p-2">
+                    <div className="text-sm font-bold data-text">{game.x_goals_for.toFixed(1)}-{game.x_goals_against.toFixed(1)}</div>
+                    <div className="text-xs data-text-muted font-medium">xG</div>
+                  </div>
+                  <div className="ice-card rounded-lg p-2">
+                    <div className="text-sm font-bold data-text">{game.face_offs_won_for}-{game.face_offs_won_against}</div>
+                    <div className="text-xs data-text-muted font-medium">FOW</div>
+                  </div>
+                  <div className="ice-card rounded-lg p-2">
+                    <div className="text-sm font-bold data-text">{game.hits_for}-{game.hits_against}</div>
+                    <div className="text-xs data-text-muted font-medium">Hits</div>
                   </div>
                 </div>
               </div>
               
               {/* Hover indicator */}
-              <div className="mt-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <span className="text-sm font-medium px-3 py-1 rounded-full" style={{color: 'var(--hockey-red)', background: 'var(--ice-blue)'}}>
-                  👆 Click to view detailed analytics
-                </span>
+              <div className="px-6 pb-4">
+                <div className="flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <span className="text-xs font-medium px-3 py-1 rounded-full" style={{color: 'var(--hockey-red)', background: 'var(--ice-blue)'}}>
+                    👆 Click to view detailed analytics
+                  </span>
+                </div>
               </div>
             </div>
-          ))}
+          );
+          })}
 
           {/* Load More Button */}
           {games.length < totalCount && (
