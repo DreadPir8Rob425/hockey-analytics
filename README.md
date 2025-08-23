@@ -1,40 +1,68 @@
 # Hockey Analytics Dashboard
 
-A comprehensive React web application built with Next.js, TypeScript, and D3.js for analyzing hockey performance data. This analytics platform provides interactive visualizations, detailed statistics, and insights for players, teams, and games.
+A comprehensive web application for analyzing hockey performance data, built with Next.js, TypeScript, and D3.js. This platform provides interactive visualizations, detailed statistics, and insights for players, teams, and games.
 
-## 🏒 Features
+## Features
 
-- **Interactive Dashboard**: Overview of key hockey statistics and trends
-- **Advanced Visualizations**: 
-  - Player performance charts (bar charts, radar charts)
-  - Team comparison analytics
-  - Seasonal trends and patterns
-  - Hockey rink shot charts with D3.js
-- **Comprehensive Data Models**: TypeScript interfaces for players, teams, games, and statistics
-- **Responsive Design**: Mobile-first approach with Tailwind CSS
-- **Modern Tech Stack**: Next.js 15, React 19, TypeScript, D3.js, Recharts
-- **Sample Data**: Pre-loaded with realistic hockey data for development and testing
+**Interactive Dashboard**
+- Overview of key hockey statistics and trends
+- Real-time data visualization and analysis
 
-## 🚀 Tech Stack
+**Advanced Visualizations**
+- Player performance charts (bar charts, radar charts)
+- Team comparison analytics
+- Seasonal trends and patterns
+- Hockey rink shot charts with D3.js
+- Interactive stat tooltips with contextual explanations
 
-- **Framework**: Next.js 15 with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Charts**: 
-  - Recharts for standard charts
-  - D3.js for custom interactive visualizations
-- **Data Processing**: Lodash, date-fns, PapaParse for CSV handling
-- **Development**: ESLint, Modern React patterns
+**Comprehensive Analytics**
+- Advanced hockey metrics (Corsi, Fenwick, PDO, Expected Goals)
+- Situational statistics (5v5, Power Play, Penalty Kill)
+- Team-specific color theming and branding
+- Period-by-period breakdowns
 
-## 📊 Chart Components
+**Modern Architecture**
+- TypeScript interfaces for players, teams, games, and statistics
+- Responsive design with mobile-first approach
+- Component-based architecture with reusable UI elements
 
-1. **PlayerPerformanceChart**: Bar chart showing goals and assists for top players
-2. **TeamComparisonChart**: Radar chart comparing team statistics
-3. **GameTrendsChart**: Area chart displaying seasonal trends
-4. **HockeyRinkChart**: Custom D3.js visualization of shot locations on hockey rink
-5. **StatsCard**: Reusable metric cards with trend indicators
+## Technology Stack
 
-## 🗂️ Project Structure
+**Core Framework**
+- Next.js 15 with App Router
+- React 19
+- TypeScript
+
+**Styling & UI**
+- Tailwind CSS
+- Custom team color system
+- Responsive design patterns
+
+**Data Visualization**
+- Recharts for standard charts
+- D3.js for custom interactive visualizations
+- Interactive tooltip system
+
+**Data Processing**
+- Lodash utilities
+- date-fns for date manipulation
+- PapaParse for CSV handling
+
+## Key Components
+
+**Chart Components**
+- PlayerPerformanceChart: Bar chart showing goals and assists for top players
+- TeamComparisonChart: Radar chart comparing team statistics
+- GameTrendsChart: Area chart displaying seasonal trends
+- HockeyRinkChart: Custom D3.js visualization of shot locations on hockey rink
+- StatsCard: Reusable metric cards with trend indicators
+
+**Interactive Features**
+- StatTooltip: Contextual explanations for hockey statistics
+- TeamComponents: Color-themed team badges, headers, and stat bars
+- Navigation: Responsive navigation with active state management
+
+## Project Structure
 
 ```
 src/
@@ -58,44 +86,56 @@ data-migrations/
 └── README.md           # Data migration guide
 ```
 
-## 🎯 Key Data Types
+## Data Models
 
-- **Player**: Basic player information and attributes
-- **PlayerStats**: Detailed performance statistics
-- **Team**: Team information and metadata
-- **TeamStats**: Team performance metrics
-- **Game**: Game information and results
-- **GameEvent**: Individual game events and plays
-- **PlayerAnalytics**: Advanced statistics (Corsi, Fenwick, PDO)
+**Core Types**
+- Player: Basic player information and attributes
+- PlayerStats: Detailed performance statistics
+- Team: Team information and metadata
+- TeamStats: Team performance metrics
+- Game: Game information and results
+- GameEvent: Individual game events and plays
+- PlayerAnalytics: Advanced statistics (Corsi, Fenwick, PDO)
 
-## 📈 Analytics Features
+## Analytics Capabilities
 
+**Standard Metrics**
 - Points per game calculations
 - Shooting and save percentages
 - Power play and penalty kill statistics
-- Advanced metrics (Corsi, Fenwick, PDO)
-- Goal differential analysis
-- Time on ice tracking
 - Faceoff win percentages
 
-## 🛠️ Utility Functions
+**Advanced Analytics**
+- Corsi and Fenwick percentages
+- PDO calculations
+- Expected Goals (xG) modeling
+- Goal differential analysis
+- Time on ice tracking
+- Situational performance breakdowns
 
-The `utils.ts` file includes specialized hockey analytics functions:
+## Utility Functions
+
+Specialized hockey analytics functions in `utils.ts`:
 - Statistical calculations (shooting %, save %, point %)
 - Data formatting and time conversions
 - Sorting and filtering utilities
 - Color palette generation for charts
 - Advanced metric calculations
 
-## 🎨 Styling & UI
+## Design System
 
-- **Tailwind CSS**: Utility-first CSS framework
-- **Dark Mode**: Built-in dark mode support
-- **Responsive**: Mobile-first responsive design
-- **Component Library**: Reusable UI components
-- **Interactive Elements**: Hover effects, transitions, tooltips
+**Styling Framework**
+- Tailwind CSS utility-first approach
+- Custom team color system with CSS variables
+- Responsive design patterns
 
-## 🏗️ Development Setup
+**UI Components**
+- Reusable component library
+- Interactive elements with hover effects and transitions
+- Contextual tooltip system
+- Team-branded visual elements
+
+## Development Setup
 
 First, install dependencies:
 
@@ -111,60 +151,61 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to see the application.
 
-## 📦 Dependencies
+## Dependencies
 
-### Core Dependencies
-- `next`: React framework
-- `react` & `react-dom`: React library
-- `typescript`: Type safety
-- `tailwindcss`: Styling framework
+**Core Dependencies**
+- next: React framework
+- react & react-dom: React library
+- typescript: Type safety
+- tailwindcss: Styling framework
 
-### Visualization Libraries
-- `d3`: Advanced data visualization
-- `recharts`: React chart library
-- `@types/d3`: TypeScript definitions for D3
+**Visualization Libraries**
+- d3: Advanced data visualization
+- recharts: React chart library
+- @types/d3: TypeScript definitions for D3
 
-### Utility Libraries
-- `lodash`: Utility functions
-- `date-fns`: Date manipulation
-- `papaparse`: CSV parsing
-- `clsx` & `tailwind-merge`: CSS class utilities
+**Utility Libraries**
+- lodash: Utility functions
+- date-fns: Date manipulation
+- papaparse: CSV parsing
+- clsx & tailwind-merge: CSS class utilities
 
-## 🎮 Sample Data
+## Sample Data
 
-The application includes comprehensive sample data:
-- **5 Top NHL Players** with realistic statistics
-- **4 NHL Teams** with performance metrics
-- **Sample Games** with results and metadata
-- **Mock API Functions** for development testing
+The application includes comprehensive sample data for development:
+- 5 top NHL players with realistic statistics
+- 4 NHL teams with performance metrics
+- Sample games with results and metadata
+- Mock API functions for development testing
 
-## 🚦 Getting Started
+## Getting Started
 
-### Frontend Development
-1. **Clone the repository**
-2. **Install dependencies**: `npm install`
-3. **Start development server**: `npm run dev`
-4. **Explore the dashboard** at `http://localhost:3000`
-5. **Check out different sections**: Players, Teams, Games, Statistics, Analysis
+**Frontend Development**
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Start development server: `npm run dev`
+4. Explore the dashboard at `http://localhost:3000`
+5. Navigate through sections: Players, Teams, Games, Statistics, Analysis
 
-### Data Migration (Optional)
+**Data Migration (Optional)**
 For working with real NHL data:
-1. **Navigate to data migrations**: `cd data-migrations`
-2. **Run setup script**: `./setup.sh`
-3. **Configure Supabase credentials** in `.env` file
-4. **Run migration script** of your choice
-5. **See [data-migrations/README.md](./data-migrations/README.md)** for detailed instructions
+1. Navigate to data migrations: `cd data-migrations`
+2. Run setup script: `./setup.sh`
+3. Configure Supabase credentials in `.env` file
+4. Run migration script of your choice
+5. See [data-migrations/README.md](./data-migrations/README.md) for detailed instructions
 
-## 📊 Data Integration
+## Data Integration
 
-The application is designed to easily integrate with real hockey APIs:
+The application supports flexible data integration:
 - NHL API integration ready
 - Flexible data models
 - Mock API structure for easy replacement
 - CSV import capabilities with PapaParse
 
-## 🎯 Future Enhancements
+## Future Development
 
+**Planned Features**
 - Real-time game data integration
 - Player comparison tools
 - Season-over-season analysis
@@ -174,10 +215,10 @@ The application is designed to easily integrate with real hockey APIs:
 - Playoff bracket visualization
 - Fantasy hockey integration
 
-## 🤝 Contributing
+## Contributing
 
-This project serves as a comprehensive foundation for hockey analytics applications. Feel free to extend it with additional features, charts, or data sources.
+This project serves as a foundation for hockey analytics applications. Contributions are welcome for additional features, charts, or data sources.
 
-## 📄 License
+## License
 
-Open source project for hockey analytics and data visualization development.
+MIT License - Open source project for hockey analytics and data visualization development.
