@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navigation from '@/components/layout/Navigation';
+import { TeamHeader, TeamVsTeam, TeamBadge, TeamStatsBar, TeamCard } from '@/components/team/TeamComponents';
+import { getTeamColors, getTeamCSSVariables } from '@/utils/teamColors';
 
 interface GameDetails {
   id: number;
@@ -220,46 +222,45 @@ export default function GameDetailsPage() {
             <span className="font-bold" style={{color: 'var(--steel-gray)'}}>Back to Games</span>
           </button>
           
-          <div className="bg-white rounded-3xl p-10 shadow-2xl border-2" style={{borderColor: 'var(--ice-blue-dark)'}}>
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-6 mb-6">
-                  <div className="flex items-center space-x-4">
-                    <h1 className="text-5xl font-black" style={{color: 'var(--deep-navy)'}}>{game.team}</h1>
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg" style={{background: 'var(--gradient-navy)'}}>
-                      <span className="text-white font-black text-sm">VS</span>
-                    </div>
-                    <h1 className="text-5xl font-black" style={{color: 'var(--deep-navy)'}}>{game.opposing_team}</h1>
-                  </div>
-                  <div className={`px-6 py-3 text-sm font-black rounded-full shadow-lg ${
-                    game.home_or_away === 'HOME' 
-                      ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white' 
-                      : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
-                  }`}>
-                    {game.home_or_away === 'HOME' ? 'HOME GAME' : 'AWAY GAME'}
-                  </div>
-                </div>
-                <div className="flex items-center space-x-6">
-                  <p className="text-xl text-slate-600 font-bold">
-                    {formatDate(game.game_date)}
-                  </p>
-                  <div className="w-3 h-3 bg-slate-300 rounded-full"></div>
-                  <p className="text-slate-500 font-semibold">Game ID: {game.game_id}</p>
-                </div>
+          {/* Game Matchup Header with Team Colors */}
+          <TeamHeader
+            team={game.team}
+            title={`${game.team} vs ${game.opposing_team}`}
+            subtitle={`${formatDate(game.game_date)} • Game ID: ${game.game_id}`}
+            className="mb-6"
+          >
+            <div className="text-right">
+              <div className={`px-4 py-2 text-sm font-bold rounded-full mb-4 ${
+                game.home_or_away === 'HOME' 
+                  ? 'bg-emerald-500 text-white' 
+                  : 'bg-blue-500 text-white'
+              }`}>
+                {game.home_or_away === 'HOME' ? '🏠 HOME' : '✈️ AWAY'}
               </div>
-              
-              <div className="mt-8 lg:mt-0 lg:ml-8">
-                <div className="text-center bg-gradient-to-br from-slate-50 to-slate-100 rounded-3xl p-8 border-2 border-slate-200 shadow-xl">
-                  <h3 className="text-sm font-black text-slate-600 uppercase tracking-wider mb-3">Final Score</h3>
-                  <div className={`text-6xl font-black mb-2 ${getResultColor(game.goals_for, game.goals_against)}`}>
-                    {game.goals_for} - {game.goals_against}
-                  </div>
-                  <div className="text-base text-slate-600 font-bold">
-                    {game.goals_for > game.goals_against ? 'Victory' : game.goals_for < game.goals_against ? 'Loss' : 'Tie'}
-                  </div>
+              <div className="text-center bg-white rounded-2xl p-4 border-2 shadow-lg" style={{borderColor: 'var(--team-secondary)'}}>
+                <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{color: 'var(--team-primary)'}}>
+                  Final Score
+                </h3>
+                <div className={`text-4xl font-black mb-1 ${getResultColor(game.goals_for, game.goals_against)}`}>
+                  {game.goals_for} - {game.goals_against}
+                </div>
+                <div className="text-sm font-bold" style={{color: 'var(--team-primary)'}}>
+                  {game.goals_for > game.goals_against ? 'Victory' : game.goals_for < game.goals_against ? 'Loss' : 'Tie'}
                 </div>
               </div>
             </div>
+          </TeamHeader>
+          
+          {/* Team vs Team Matchup */}
+          <div className="bg-white rounded-2xl p-6 shadow-xl border-2 mb-6" style={{borderColor: 'var(--ice-blue-dark)'}}>
+            <TeamVsTeam
+              homeTeam={game.home_or_away === 'HOME' ? game.team : game.opposing_team}
+              awayTeam={game.home_or_away === 'HOME' ? game.opposing_team : game.team}
+              homeScore={game.home_or_away === 'HOME' ? game.goals_for : game.goals_against}
+              awayScore={game.home_or_away === 'HOME' ? game.goals_against : game.goals_for}
+              date={formatDate(game.game_date)}
+              className="border-0 shadow-none bg-transparent p-0"
+            />
           </div>
         </div>
 
@@ -346,21 +347,32 @@ export default function GameDetailsPage() {
               </div>
             </div>
 
-            {/* Advanced Metrics */}
+            {/* Advanced Metrics with Team Colors */}
             <div className="bg-white rounded-2xl p-8 shadow-xl border-2" style={{borderColor: 'var(--ice-blue-dark)'}}>
               <h3 className="text-2xl font-black mb-6 flex items-center space-x-3" style={{color: 'var(--deep-navy)'}}>
-                <span className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg text-lg font-black" style={{background: 'var(--gradient-secondary)'}}>A</span>
-                <span>Advanced Metrics</span>
+                <TeamBadge team={game.team} size="sm" showText={false} />
+                <span>Team Performance Metrics</span>
               </h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="font-bold" style={{color: 'var(--steel-gray)'}}>Corsi %</span>
-                  <span className="font-black text-xl" style={{color: 'var(--hockey-red)'}}>{(game.corsi_percentage * 100).toFixed(1)}%</span>
-                </div>
-                <div className="flex justify-between items-center py-4 border-b border-slate-200">
-                  <span className="font-bold" style={{color: 'var(--steel-gray)'}}>Fenwick %</span>
-                  <span className="font-black text-xl" style={{color: 'var(--deep-navy)'}}>{(game.fenwick_percentage * 100).toFixed(1)}%</span>
-                </div>
+              <div className="space-y-6">
+                <TeamStatsBar
+                  team={game.team}
+                  value={game.corsi_percentage * 100}
+                  label={`${game.team} Corsi Percentage`}
+                  className="mb-4"
+                />
+                <TeamStatsBar
+                  team={game.team}
+                  value={game.fenwick_percentage * 100}
+                  label={`${game.team} Fenwick Percentage`}
+                  className="mb-4"
+                />
+                <TeamStatsBar
+                  team={game.team}
+                  value={parseFloat(game.analytics.shootingPercentage)}
+                  maxValue={20}
+                  label={`${game.team} Shooting Percentage`}
+                  className="mb-4"
+                />
                 <div className="flex justify-between items-center py-4 border-b border-slate-200">
                   <span className="text-slate-600 font-bold">PDO</span>
                   <span className={`font-black text-xl ${
