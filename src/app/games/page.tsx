@@ -215,9 +215,8 @@ export default function GamesPage() {
               onChange={(e) => setFilters(prev => ({ ...prev, season: e.target.value }))}
               className="w-full border-2 rounded-xl px-4 py-3 focus:ring-2 bg-white data-text transition-all duration-200"
               style={{
-                borderColor: 'var(--ice-blue-dark)',
-                '--tw-ring-color': 'var(--hockey-red)'
-              }}
+                borderColor: 'var(--ice-blue-dark)'
+              } as React.CSSProperties}
               onFocus={(e) => {
                 e.target.style.borderColor = 'var(--hockey-red)';
                 e.target.style.boxShadow = '0 0 0 2px rgba(197, 48, 48, 0.2)';
