@@ -7,12 +7,10 @@ const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
-    { href: '/', label: 'Dashboard' },
-    { href: '/players', label: 'Players' },
+    { href: '/', label: 'Games' },
     { href: '/teams', label: 'Teams' },
-    { href: '/games', label: 'Games' },
-    { href: '/statistics', label: 'Statistics' },
-    { href: '/analysis', label: 'Analysis' },
+    { href: '/players', label: 'Players' },
+    { href: '/sandbox', label: 'Sandbox' },
   ];
 
   return (
