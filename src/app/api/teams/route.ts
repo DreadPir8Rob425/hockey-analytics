@@ -5,15 +5,24 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables. Please check your .env.local file.');
-  console.error('Required variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY');
-}
-
-const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 export async function GET() {
   try {
+    if (!supabase) {
+      // Return a basic set of NHL teams for demo purposes
+      const defaultTeams = [
+        'ANA', 'ARI', 'BOS', 'BUF', 'CAR', 'CBJ', 'CGY', 'CHI', 'COL', 'DAL',
+        'DET', 'EDM', 'FLA', 'LAK', 'MIN', 'MTL', 'NJD', 'NSH', 'NYI', 'NYR',
+        'OTT', 'PHI', 'PIT', 'SJS', 'STL', 'TBL', 'TOR', 'VAN', 'VGK', 'WPG', 'WSH'
+      ];
+      
+      return NextResponse.json({
+        teams: defaultTeams,
+        count: defaultTeams.length,
+      });
+    }
+    
     // Use a more reliable approach: Get distinct teams using multiple queries
     // This eliminates the sampling issue that was causing inconsistent results
     

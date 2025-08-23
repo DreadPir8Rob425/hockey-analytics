@@ -5,12 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables. Please check your .env.local file.');
-  console.error('Required variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY');
-}
-
-const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 export interface ShotFilters {
   teams?: string[];
@@ -61,6 +56,13 @@ export interface ShotData {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Database not configured', data: [], count: 0, totalCount: 0 },
+        { status: 503 }
+      );
+    }
     
     // Parse filters from query parameters
     const filters: ShotFilters = {
