@@ -31,6 +31,10 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/',
   },
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+  },
   openGraph: {
     title: "Cold Hard Puck",
     description: "Cold Hard Puck - Professional NHL hockey analytics and statistics platform with advanced metrics and game analysis",
