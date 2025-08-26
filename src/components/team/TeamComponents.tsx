@@ -334,7 +334,7 @@ export const TeamStatsBar: React.FC<TeamStatsBarProps> = ({
       {label && (
         <div className="flex justify-between mb-2">
           <span className="font-semibold">{label}</span>
-          {showPercentage && <span className="text-sm">{percentage.toFixed(1)}%</span>}
+          {showPercentage && <span className="text-sm">{value.toFixed(1)}%</span>}
         </div>
       )}
       <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">

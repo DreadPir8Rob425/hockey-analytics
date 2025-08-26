@@ -1,0 +1,24 @@
+
+> cold-hard-puck@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.4.6
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.152:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1239ms
+ ✓ Compiled /api/games/[gameId] in 399ms (357 modules)
+DEBUG Shooting %: goals_for=1, shots_for=29, calc=3.4%
+✅ Team consistency validated for game 30127: EDM
+Game Details API: Found game 30127 with 5 situations for team EDM
+Team perspective consistency: Original team=EDM, Detail team=EDM
+ GET /api/games/30127 200 in 1658ms
+DEBUG Shooting %: goals_for=1, shots_for=29, calc=3.4%
+✅ Team consistency validated for game 30127: EDM
+Game Details API: Found game 30127 with 5 situations for team EDM
+Team perspective consistency: Original team=EDM, Detail team=EDM
+ GET /api/games/30127 200 in 763ms
+ ✓ Compiled in 86ms (171 modules)
+[?25h
