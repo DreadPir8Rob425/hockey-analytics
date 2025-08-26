@@ -45,8 +45,10 @@ export const StatTooltip: React.FC<StatTooltipProps> = ({
         return stat.interpretation.average;
         
       case 'save_percentage':
-        if (numVal > 0.92) return stat.interpretation.high;
-        if (numVal < 0.90) return stat.interpretation.low;
+        // Handle both decimal (0.92) and percentage (92) formats
+        const saveVal = numVal > 1 ? numVal : numVal * 100;
+        if (saveVal >= 92) return stat.interpretation.high;
+        if (saveVal < 90) return stat.interpretation.low;
         return stat.interpretation.average;
         
       default:

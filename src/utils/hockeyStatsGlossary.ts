@@ -79,9 +79,9 @@ export const HOCKEY_STATS_GLOSSARY: Record<string, StatDefinition> = {
     calculation: 'Saves ÷ Shots Against × 100',
     goodRange: '90%+ is good, 92%+ is excellent',
     interpretation: {
-      high: 'Elite goaltending performance',
-      average: 'Solid goaltending',
-      low: 'Struggling goaltending or poor team defense'
+      high: 'Elite goaltending performance (92%+)',
+      average: 'Average goaltending (90-92%)',
+      low: 'Poor goaltending or defensive breakdowns (<90%)'
     },
     examples: ['.915 save percentage means saving 91.5% of shots faced'],
     relatedStats: ['goals_against', 'shots_against']
