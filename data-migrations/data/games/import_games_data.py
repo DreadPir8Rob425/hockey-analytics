@@ -306,7 +306,7 @@ def main():
     DB_PASSWORD = os.getenv('SUPABASE_DB_PASSWORD', 'your-db-password')
     
     # Path to your CSV file
-    CSV_FILE_PATH = 'all_teams.csv'
+    CSV_FILE_PATH = 'DAL.csv'
     
     # Check if CSV file exists
     if not os.path.exists(CSV_FILE_PATH):

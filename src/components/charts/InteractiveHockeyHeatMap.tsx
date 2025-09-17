@@ -1,223 +1,261 @@
-'use client';
-
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import * as d3 from 'd3';
 import { hexbin } from 'd3-hexbin';
-import { ShotData, ShotFilters } from '@/app/api/shots/route';
 
-interface InteractiveHockeyHeatMapProps {
-  width?: number;
-  height?: number;
-  className?: string;
+// Define the structure of CSV shot data
+interface CSVShotData {
+  // Existing fields
+  shotID?: string;
+  game_id?: string;
+  xCord?: number;
+  yCord?: number;
+  xCordAdjusted?: number;
+  yCordAdjusted?: number;
+  arenaAdjustedXCord?: number;
+  arenaAdjustedYCord?: number;
+  goal?: boolean | number | string;
+  shotWasOnGoal?: boolean | number | string;
+  event?: string;
+  shotType?: string;
+  shotDistance?: number;
+  arenaAdjustedShotDistance?: number;
+  shotAngle?: number;
+  shotAngleAdjusted?: number;
+  xGoal?: number;
+  period?: number;
+  time?: number | string;
+  team?: string;
+  teamCode?: string;
+  shooterName?: string;
+  homeTeamCode?: string;
+  awayTeamCode?: string;
+  isHomeTeam?: boolean | number | string;
+  homeSkatersOnIce?: number;
+  awaySkatersOnIce?: number;
+  shotGeneratedRebound?: boolean | number | string;
+  shotGoalieFroze?: boolean | number | string;
+  shotPlayStopped?: boolean | number | string;
+  lastEventCategory?: string;
+  
+  // Add these new fields from your CSV
+  shotOnEmptyNet?: boolean | number | string;
+  homeEmptyNet?: boolean | number | string;
+  awayEmptyNet?: boolean | number | string;
+  shotRebound?: boolean | number | string;
+  shotRush?: boolean | number | string;
 }
 
-interface FilterState extends ShotFilters {
-  showHexagons: boolean;
-  showIndividualShots: boolean;
-  hexagonSize: number;
+interface ProcessedShot {
+  x: number;
+  y: number;
+  xGoal: number;
+  isGoal: boolean;
+  isOnGoal: boolean;
+  isBlocked: boolean;
+  isMissed: boolean;
+  shotType: string;
+  shotDistance: number;
+  shotAngle: number;
+  period: number;
+  team: string;
+  shooter: string;
+  outcome: 'goal' | 'save' | 'block' | 'miss';
+  
+  // Add these new fields
+  isEmptyNet: boolean;
+  isRebound: boolean;
+  isPowerPlay: boolean;
+  isPenaltyKill: boolean;
+  isEvenStrength: boolean;
+  isShootout: boolean;
+}
+
+interface HexbinData {
+  x: number;
+  y: number;
+  count: number;
+  avgXG: number;
+  goals: number;
+  shots: ProcessedShot[];
+}
+
+interface InteractiveHockeyHeatMapProps {
+  csvData: CSVShotData[];
+  width?: number;
+  height?: number;
 }
 
 const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
-  width = 800,
-  height = 400,
-  className = "",
+  csvData,
+  width = 900,
+  height = 450,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [shotData, setShotData] = useState<ShotData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   
-  const [filters, setFilters] = useState<FilterState>({
-    showHexagons: true,
-    showIndividualShots: true,
-    hexagonSize: 15,
+  // Filter states
+  const [filters, setFilters] = useState({
+    // Existing filters
+    teams: [] as string[],
+    periods: [] as number[],
+    outcomes: ['goal', 'save', 'block', 'miss'] as string[],
+    shotTypes: [] as string[],
     xGoalMin: 0,
     xGoalMax: 1,
-    limit: 5000,
-    teams: [], // Start with no teams selected
+    showHexagons: true,
+    showIndividualShots: false,
+    hexagonSize: 15,
+    
+    // New filters
+    emptyNet: false,
+    reboundGoals: false,
+    powerPlay: false,
+    penaltyKill: false,
+    evenStrength: false,
+    shootout: false,
+    xCoordMin: 0,
+    xCoordMax: 100,
   });
 
+  // Tooltip state
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
     x: number;
     y: number;
-    data: Record<string, unknown> | null;
-    pinned: boolean;
-    elementId: string | null;
+    data: any;
   }>({
     visible: false,
     x: 0,
     y: 0,
     data: null,
-    pinned: false,
-    elementId: null,
   });
 
-  // Available filter options
-  const [filterOptions, setFilterOptions] = useState<{
-    teams: string[];
-    players: string[];
-    shotTypes: string[];
-  }>({
-    teams: [],
-    players: [],
-    shotTypes: [],
-  });
+  // Get unique filter options from data
+  const filterOptions = useMemo(() => {
+    if (!csvData || csvData.length === 0) return { teams: [], shotTypes: [], periods: [] };
+    
+    const teams = [...new Set(csvData.map(s => s.team || s.teamCode).filter(Boolean))].sort() as string[];
+    const shotTypes = [...new Set(csvData.map(s => s.shotType).filter(Boolean))].sort() as string[];
+    const periods = [...new Set(csvData.map(s => s.period).filter(Boolean))].sort() as number[];
+    
+    return { teams, shotTypes, periods };
+  }, [csvData]);
 
-  // Team search functionality
-  const [teamSearchTerm, setTeamSearchTerm] = useState('');
-  const [showTeamDropdown, setShowTeamDropdown] = useState(false);
-
-  // Hockey rink dimensions (scaled to fit SVG)
-  const rinkDimensions = useMemo(() => ({
-    width: width * 0.9,
-    height: height * 0.8,
-    centerX: width / 2,
-    centerY: height / 2,
-  }), [width, height]);
-
-  // Coordinate scaling functions - Half rink only (offensive zone)
-  const xScale = useMemo(() => 
-    d3.scaleLinear()
-      .domain([0, 100]) // Half rink width (attacking goal on right)
-      .range([rinkDimensions.centerX - rinkDimensions.width / 2, rinkDimensions.centerX + rinkDimensions.width / 2])
-  , [rinkDimensions]);
-
-  const yScale = useMemo(() => 
-    d3.scaleLinear()
-      .domain([-42.5, 42.5]) // Full rink height
-      .range([rinkDimensions.centerY + rinkDimensions.height / 2, rinkDimensions.centerY - rinkDimensions.height / 2])
-  , [rinkDimensions]);
-
-  // Fetch available teams on component mount
-  const fetchAvailableTeams = useCallback(async () => {
-    try {
-      console.log('Fetching available teams...');
-      const response = await fetch('/api/teams');
-      const result = await response.json();
+  // Transform CSV data
+  const processedData = useMemo((): ProcessedShot[] => {
+    return csvData.map(shot => {
+      // Use adjusted coordinates if available
+      const x = shot.xCordAdjusted ?? shot.arenaAdjustedXCord ?? shot.xCord ?? 0;
+      const y = shot.yCordAdjusted ?? shot.arenaAdjustedYCord ?? shot.yCord ?? 0;
       
-      if (response.ok) {
-        console.log(`Successfully fetched ${result.teams?.length || 0} teams:`, result.teams);
-        // Teams are already sorted alphabetically from the API
-        setFilterOptions(prev => ({ ...prev, teams: result.teams || [] }));
-        
-        // Log a warning if we get fewer teams than expected
-        if (result.teams && result.teams.length < 20) {
-          console.warn(`Only ${result.teams.length} teams loaded - this might indicate a data sampling issue`);
-        }
-      } else {
-        console.error('Failed to fetch teams - API error:', result.error);
-        setError(`Failed to load teams: ${result.error}`);
-      }
-    } catch (err) {
-      console.error('Failed to fetch available teams - network/parsing error:', err);
-      setError('Failed to connect to teams API');
-    }
-  }, []);
-
-  // Fetch shot data (only when teams are selected)
-  const fetchShotData = useCallback(async () => {
-    // Don't fetch data if no teams are selected
-    if (!filters.teams || filters.teams.length === 0) {
-      setShotData([]);
-      setFilterOptions(prev => ({ ...prev, players: [], shotTypes: [] }));
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const params = new URLSearchParams();
+      // Determine game situations
+      const homeSk = shot.homeSkatersOnIce ?? 5;
+      const awaySk = shot.awaySkatersOnIce ?? 5;
+      const isHome = shot.isHomeTeam === 1 || shot.isHomeTeam === true;
       
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && key !== 'showHexagons' && key !== 'showIndividualShots' && key !== 'hexagonSize') {
-          if (Array.isArray(value)) {
-            if (value.length > 0) params.set(key, value.join(','));
-          } else {
-            params.set(key, String(value));
-          }
-        }
-      });
+      // Determine shot outcome
+      const isGoal = shot.goal === 1 || shot.goal === true || shot.goal === 'true' || shot.goal === '1';
+      const isOnGoal = shot.shotWasOnGoal === 1 || shot.shotWasOnGoal === true || shot.shotWasOnGoal === 'true' || shot.shotWasOnGoal === '1';
+      const isBlocked = shot.event === 'BLOCKED_SHOT' || shot.lastEventCategory === 'BLOCKED_SHOT';
+      const isMissed = !isGoal && !isOnGoal && !isBlocked;
+      
+      const isEmptyNet = shot.shotOnEmptyNet === 1 || 
+                       shot.homeEmptyNet === 1 || 
+                       shot.awayEmptyNet === 1;
+      const isRebound = shot.shotRebound === 1 || shot.shotRebound === true;
+      const isPowerPlay = (isHome && homeSk > awaySk) || (!isHome && awaySk > homeSk);
+      const isPenaltyKill = (isHome && homeSk < awaySk) || (!isHome && awaySk < homeSk);
+      const isEvenStrength = homeSk === awaySk && homeSk === 5;
+      const isShootout = shot.period > 4 || (shot.period === 4 && homeSk === 1 && awaySk === 1);
+      
+      let outcome: 'goal' | 'save' | 'block' | 'miss';
+      if (isGoal) outcome = 'goal';
+      else if (isBlocked) outcome = 'block';
+      else if (isOnGoal) outcome = 'save';
+      else outcome = 'miss';
+      
+      return {
+        x: Math.abs(x), // Use absolute value for offensive zone
+        y,
+        xGoal: shot.xGoal ?? 0,
+        isGoal,
+        isOnGoal,
+        isBlocked,
+        isMissed,
+        shotType: shot.shotType || 'Unknown',
+        shotDistance: shot.arenaAdjustedShotDistance ?? shot.shotDistance ?? 0,
+        shotAngle: shot.shotAngleAdjusted ?? shot.shotAngle ?? 0,
+        period: shot.period ?? 0,
+        team: shot.team || shot.teamCode || 'Unknown',
+        shooter: shot.shooterName || 'Unknown',
+        isEmptyNet,
+        isRebound,
+        isPowerPlay,
+        isPenaltyKill,
+        isEvenStrength,
+        isShootout,
+        outcome,
+      };
+    }).filter(shot => shot.x !== 0 || shot.y !== 0);
+  }, [csvData]);
 
-      const response = await fetch(`/api/shots?${params}`);
-      const result = await response.json();
-
-      if (!response.ok) {
-        if (result.error?.includes('supabaseUrl is required') || result.details?.includes('Invalid API key')) {
-          throw new Error('Supabase configuration missing. Please set up your .env.local file with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
-        }
-        throw new Error(result.error || 'Failed to fetch shot data');
-      }
-
-      setShotData(result.data);
-
-      // Extract unique values for filter options from loaded data
-      const players = [...new Set(result.data.map((shot: ShotData) => shot.shooter_name))].filter(Boolean) as string[];
-      const shotTypes = [...new Set(result.data.map((shot: ShotData) => shot.shot_type))].filter(Boolean) as string[];
-
-      setFilterOptions(prev => ({ ...prev, players, shotTypes }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
-
-  // Filter and normalize shot data for consistent analytics view
+  // Apply filters to get filtered data
   const filteredData = useMemo(() => {
-    return shotData.filter(shot => {
-      if (filters.teams && filters.teams.length > 0 && !filters.teams.includes(shot.team_code)) {
-        return false;
-      }
-      if (filters.periods && filters.periods.length > 0 && !filters.periods.includes(shot.period)) {
-        return false;
-      }
-      if (filters.xGoalMin !== undefined && shot.x_goal < filters.xGoalMin) {
-        return false;
-      }
-      if (filters.xGoalMax !== undefined && shot.x_goal > filters.xGoalMax) {
-        return false;
-      }
+    return processedData.filter(shot => {
+      // Existing filters
+      if (filters.teams.length > 0 && !filters.teams.includes(shot.team)) return false;
+      if (filters.periods.length > 0 && !filters.periods.includes(shot.period)) return false;
+      if (filters.outcomes.length > 0 && !filters.outcomes.includes(shot.outcome)) return false;
+      if (filters.shotTypes.length > 0 && !filters.shotTypes.includes(shot.shotType)) return false;
+      if (shot.xGoal < filters.xGoalMin || shot.xGoal > filters.xGoalMax) return false;
+      
+      // New situation filters (only apply if checked)
+      if (filters.emptyNet && !shot.isEmptyNet) return false;
+      if (filters.reboundGoals && !(shot.isGoal && shot.isRebound)) return false;
+      if (filters.powerPlay && !shot.isPowerPlay) return false;
+      if (filters.penaltyKill && !shot.isPenaltyKill) return false;
+      if (filters.evenStrength && !shot.isEvenStrength) return false;
+      if (filters.shootout && !shot.isShootout) return false;
+      
+      // X-coordinate filter
+      if (shot.x < filters.xCoordMin || shot.x > filters.xCoordMax) return false;
+      
       return true;
-    }).map(shot => {
-      // Normalize coordinates so all shots appear to attack the same goal (right side)
-      // In hockey, teams switch sides each period, but for analytics we want consistency
-      const normalizedShot = { ...shot };
-      
-      // CORRECTED LOGIC based on debug output:
-      // The coordinate system shows:
-      // - Positive X = attacking RIGHT goal
-      // - Negative X = attacking LEFT goal
-      // We want ALL shots normalized to appear as attacking the RIGHT goal (positive X)
-      
-      // From the debug output we can see:
-      // - When DAL is HOME in period 3: negative X coords (attacking left) - need to flip
-      // - When DAL is AWAY in period 1: positive X coords (attacking right) - don't flip
-      // - When DAL is AWAY in period 2: negative X coords (attacking left) - need to flip
-      
-      // Simple rule: if X coordinate is negative, the shot is attacking left goal, so flip it
-      if (shot.x_cord < 0) {
-        normalizedShot.x_cord = -shot.x_cord;  // Flip X coordinate (left-right)
-        normalizedShot.y_cord = -shot.y_cord;  // Flip Y coordinate (up-down)
-      }
-      
-      return normalizedShot;
     });
-  }, [shotData, filters]);
+  }, [processedData, filters]);
 
-  // Create hexbin layout
+  // Calculate statistics from filtered data
+  const stats = useMemo(() => {
+    const total = filteredData.length;
+    const goals = filteredData.filter(s => s.isGoal).length;
+    const saves = filteredData.filter(s => s.isOnGoal && !s.isGoal).length;
+    const blocks = filteredData.filter(s => s.isBlocked).length;
+    const misses = filteredData.filter(s => s.isMissed).length;
+    const avgXG = total > 0 ? filteredData.reduce((sum, s) => sum + s.xGoal, 0) / total : 0;
+    const shootingPct = total > 0 ? (goals / total) * 100 : 0;
+    
+    return { total, goals, saves, blocks, misses, avgXG, shootingPct };
+  }, [filteredData]);
+
+  // Setup scales
+  const xScale = useMemo(() => 
+    d3.scaleLinear().domain([0, 100]).range([0, width * 0.9])
+  , [width]);
+  
+  const yScale = useMemo(() => 
+    d3.scaleLinear().domain([-42.5, 42.5]).range([0, height * 0.9])
+  , [height]);
+
+  // Create hexbin generator
   const hexbinGenerator = useMemo(() => {
-    return hexbin<ShotData>()
-      .x((d: ShotData) => xScale(d.x_cord))
-      .y((d: ShotData) => yScale(d.y_cord))
+    return hexbin<ProcessedShot>()
+      .x(d => xScale(d.x))
+      .y(d => yScale(d.y))
       .radius(filters.hexagonSize)
       .extent([[0, 0], [width, height]]);
   }, [xScale, yScale, width, height, filters.hexagonSize]);
 
   // Generate hexagon data
-  const hexagonData = useMemo(() => {
+  const hexagonData = useMemo((): HexbinData[] => {
     if (!filters.showHexagons || filteredData.length === 0) return [];
     
     const bins = hexbinGenerator(filteredData);
@@ -226,315 +264,414 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
       x: bin.x,
       y: bin.y,
       count: bin.length,
-      avgXG: bin.reduce((sum, d) => sum + d.x_goal, 0) / bin.length,
+      avgXG: bin.length > 0 ? bin.reduce((sum, d) => sum + d.xGoal, 0) / bin.length : 0,
+      goals: bin.filter(d => d.isGoal).length,
       shots: bin,
     }));
   }, [hexbinGenerator, filteredData, filters.showHexagons]);
 
-  // Color scales
-  const densityColorScale = useMemo(() => 
-    d3.scaleSequential(d3.interpolateOrRd)
-      .domain([0, d3.max(hexagonData, d => d.count) || 1])
-  , [hexagonData]);
+  // Color scale for heat map - using blues for better visibility
+  const colorScale = useMemo(() => {
+    const maxCount = d3.max(hexagonData, d => d.count) || 1;
+    // Custom color interpolation for better low-value visibility
+    return d3.scaleSequential()
+      .domain([0, maxCount])
+      .interpolator(d3.interpolateRgb("#e3f2fd", "#0d47a1")); // Light blue to dark blue
+    // Alternative options:
+    // .interpolator(d3.interpolateBlues) // Standard blues
+    // .interpolator(d3.interpolateYlOrRd) // Yellow-Orange-Red
+    // .interpolator(d3.interpolatePlasma) // Purple-Pink-Yellow
+  }, [hexagonData]);
 
-  const xgColorScale = useMemo(() => 
-    d3.scaleSequential(d3.interpolateViridis)
-      .domain([0, 1])
-  , []);
-
-  // Draw hockey rink - Half rink view (offensive zone only) with proper NHL proportions
-  const drawHockeyRink = useCallback((g: d3.Selection<SVGGElement, unknown, null, undefined>) => {
-    const rink = g.append('g').attr('class', 'rink');
-
-    // Calculate proper hockey rink proportions for half rink
-    // NHL rink: 200ft x 85ft, we're showing ~100ft x 85ft (offensive zone)
-    const rinkLeft = rinkDimensions.centerX - rinkDimensions.width / 2;
-    const rinkRight = rinkDimensions.centerX + rinkDimensions.width / 2;
-    const rinkTop = rinkDimensions.centerY - rinkDimensions.height / 2;
-    const rinkBottom = rinkDimensions.centerY + rinkDimensions.height / 2;
-    const cornerRadius = 28; // NHL corner radius is 28ft
-
-    // Rink outline with proper rounded corners
-    rink.append('path')
-      .attr('d', `
-        M ${rinkLeft + cornerRadius} ${rinkTop}
-        L ${rinkRight - cornerRadius} ${rinkTop}
-        A ${cornerRadius} ${cornerRadius} 0 0 1 ${rinkRight} ${rinkTop + cornerRadius}
-        L ${rinkRight} ${rinkBottom - cornerRadius}
-        A ${cornerRadius} ${cornerRadius} 0 0 1 ${rinkRight - cornerRadius} ${rinkBottom}
-        L ${rinkLeft + cornerRadius} ${rinkBottom}
-        A ${cornerRadius} ${cornerRadius} 0 0 1 ${rinkLeft} ${rinkBottom - cornerRadius}
-        L ${rinkLeft} ${rinkTop + cornerRadius}
-        A ${cornerRadius} ${cornerRadius} 0 0 1 ${rinkLeft + cornerRadius} ${rinkTop}
-        Z
-      `)
-      .attr('fill', '#ffffff')
-      .attr('stroke', '#000000')
-      .attr('stroke-width', 2);
-
-    // Blue line (zone entrance) - 30ft from center line (NHL standard)
-    const blueLineX = rinkLeft + (rinkDimensions.width * 0.30); // 30ft from center line
-    rink.append('line')
-      .attr('x1', blueLineX)
-      .attr('y1', rinkTop)
-      .attr('x2', blueLineX)
-      .attr('y2', rinkBottom)
-      .attr('stroke', '#0066cc')
-      .attr('stroke-width', 12); // NHL blue line is 12 inches wide
-
-    // Center line (red line bisecting the rink at back border)
-    const centerLineX = rinkLeft; // Center line is at the back border of our half-rink view
-    rink.append('line')
-      .attr('x1', centerLineX)
-      .attr('y1', rinkTop)
-      .attr('x2', centerLineX)
-      .attr('y2', rinkBottom)
-      .attr('stroke', '#cc0000')
-      .attr('stroke-width', 2);
-
-    // Center circle (half circle at center line) - 30ft diameter (15ft radius) - Blue color
-    const centerCircleRadius = rinkDimensions.width * 0.075; // 15ft radius
-    rink.append('path')
-      .attr('d', `
-        M ${centerLineX} ${rinkDimensions.centerY - centerCircleRadius}
-        A ${centerCircleRadius} ${centerCircleRadius} 0 0 1 ${centerLineX} ${rinkDimensions.centerY + centerCircleRadius}
-      `)
-      .attr('fill', 'none')
-      .attr('stroke', '#0066cc')
-      .attr('stroke-width', 2);
-      
-    // Center face-off dot (puck drop location) - blue to match center circle
-    rink.append('circle')
-      .attr('cx', centerLineX)
-      .attr('cy', rinkDimensions.centerY)
-      .attr('r', 3)
-      .attr('fill', '#0066cc')
-      .attr('stroke', '#ffffff')
-      .attr('stroke-width', 1);
-
-    // Goal line (89ft from center line, 11ft from end boards in NHL rink)
-    const goalLineX = rinkLeft + (rinkDimensions.width * 0.89); // 89ft from center line
-    rink.append('line')
-      .attr('x1', goalLineX)
-      .attr('y1', rinkTop)
-      .attr('x2', goalLineX)
-      .attr('y2', rinkBottom)
-      .attr('stroke', '#cc0000')
-      .attr('stroke-width', 2);
-
-    // Goal crease (6ft radius from goal line) - curves towards center ice
-    const goalX = goalLineX;
-    const creaseRadius = rinkDimensions.width * 0.06; // 6ft radius
-    rink.append('path')
-      .attr('d', `
-        M ${goalX} ${rinkDimensions.centerY - creaseRadius}
-        A ${creaseRadius} ${creaseRadius} 0 0 0 ${goalX} ${rinkDimensions.centerY + creaseRadius}
-      `)
-      .attr('fill', 'rgba(135, 206, 235, 0.3)')
-      .attr('stroke', '#cc0000')
-      .attr('stroke-width', 2);
-
-
-    // Face-off circles (30ft diameter, 15ft radius) - positioned 20ft from goal line
-    const faceoffRadius = rinkDimensions.width * 0.075; // 15ft radius
-    const faceoffDistance = rinkDimensions.width * 0.2; // 20ft from goal line  
-    const faceoffOffsetY = rinkDimensions.height * 0.26; // ~22ft from center
-    
-    const faceoffPositions = [
-      { x: goalLineX - faceoffDistance, y: rinkDimensions.centerY - faceoffOffsetY },
-      { x: goalLineX - faceoffDistance, y: rinkDimensions.centerY + faceoffOffsetY },
-    ];
-
-    faceoffPositions.forEach(pos => {
-      // Main circle
-      rink.append('circle')
-        .attr('cx', pos.x)
-        .attr('cy', pos.y)
-        .attr('r', faceoffRadius)
-        .attr('fill', 'none')
-        .attr('stroke', '#cc0000')
-        .attr('stroke-width', 2);
-        
-      // Center dot
-      rink.append('circle')
-        .attr('cx', pos.x)
-        .attr('cy', pos.y)
-        .attr('r', 1)
-        .attr('fill', '#cc0000');
-        
-      // Hash marks inside circle
-      const hashLength = 4;
-      const hashOffset = faceoffRadius - 2;
-      
-      // Top and bottom hash marks
-      rink.append('line')
-        .attr('x1', pos.x - hashLength/2)
-        .attr('y1', pos.y - hashOffset)
-        .attr('x2', pos.x + hashLength/2)
-        .attr('y2', pos.y - hashOffset)
-        .attr('stroke', '#cc0000')
-        .attr('stroke-width', 2);
-        
-      rink.append('line')
-        .attr('x1', pos.x - hashLength/2)
-        .attr('y1', pos.y + hashOffset)
-        .attr('x2', pos.x + hashLength/2)
-        .attr('y2', pos.y + hashOffset)
-        .attr('stroke', '#cc0000')
-        .attr('stroke-width', 2);
-        
-      // Left and right hash marks
-      rink.append('line')
-        .attr('x1', pos.x - hashOffset)
-        .attr('y1', pos.y - hashLength/2)
-        .attr('x2', pos.x - hashOffset)
-        .attr('y2', pos.y + hashLength/2)
-        .attr('stroke', '#cc0000')
-        .attr('stroke-width', 2);
-        
-      rink.append('line')
-        .attr('x1', pos.x + hashOffset)
-        .attr('y1', pos.y - hashLength/2)
-        .attr('x2', pos.x + hashOffset)
-        .attr('y2', pos.y + hashLength/2)
-        .attr('stroke', '#cc0000')
-        .attr('stroke-width', 2);
-    });
-
-    // Goal (6ft wide x 4ft deep)
-    const goalWidth = rinkDimensions.height * 0.07; // ~6ft
-    const goalDepth = rinkDimensions.width * 0.02; // ~4ft
-    
-    // Goal frame
-    rink.append('rect')
-      .attr('x', goalLineX)
-      .attr('y', rinkDimensions.centerY - goalWidth / 2)
-      .attr('width', goalDepth)
-      .attr('height', goalWidth)
-      .attr('fill', 'none')
-      .attr('stroke', '#cc0000')
-      .attr('stroke-width', 3);
-
-    // Goal posts (circles at corners)
-    rink.append('circle')
-      .attr('cx', goalLineX)
-      .attr('cy', rinkDimensions.centerY - goalWidth / 2)
-      .attr('r', 1.5)
-      .attr('fill', '#cc0000');
-      
-    rink.append('circle')
-      .attr('cx', goalLineX)
-      .attr('cy', rinkDimensions.centerY + goalWidth / 2)
-      .attr('r', 1.5)
-      .attr('fill', '#cc0000');
-
-
-  }, [rinkDimensions]);
-
-  // Enhanced tooltip functions for better mobile/tablet experience
-  const showTooltip = useCallback((event: any, data: Record<string, unknown>, elementId: string) => {
-    console.log('showTooltip called:', { elementId, data: data.type, eventType: event.type });
-    
-    // Get container bounds for better positioning
-    const svgRect = svgRef.current?.getBoundingClientRect();
-    if (!svgRect) {
-      console.log('No SVG rect found');
-      return;
-    }
-
-    // Calculate position relative to the SVG container
-    const isTouchEvent = event.type?.includes('touch');
-    let x = event.offsetX || event.layerX || 0;
-    let y = event.offsetY || event.layerY || 0;
-    
-    // Simple offset from mouse position
-    const offset = isTouchEvent ? { x: 15, y: -60 } : { x: 10, y: -10 };
-    x += offset.x;
-    y += offset.y;
-    
-    // Keep tooltip within SVG bounds
-    x = Math.max(10, Math.min(x, width - 220));
-    y = Math.max(10, Math.min(y, height - 150));
-    
-    console.log('Setting tooltip state:', {
-      visible: true,
-      x: x + offset.x,
-      y: y + offset.y,
-      data: data.type,
-      pinned: isTouchEvent,
-      elementId,
-    });
-    
-    setTooltip({
-      visible: true,
-      x: x + offset.x,
-      y: y + offset.y,
-      data,
-      pinned: isTouchEvent,
-      elementId,
-    });
-  }, []);
-
-  const hideTooltip = useCallback((elementId?: string) => {
-    setTooltip(prev => {
-      // Don't hide if it's pinned and we're not specifically hiding this element
-      if (prev.pinned && elementId && prev.elementId !== elementId) {
-        return prev;
-      }
-      return { ...prev, visible: false, pinned: false, elementId: null };
-    });
-  }, []);
-
-  const toggleTooltipPin = useCallback((event: any, data: Record<string, unknown>, elementId: string) => {
-    setTooltip(prev => {
-      if (prev.elementId === elementId && prev.visible) {
-        // Hide if clicking the same element that's already visible
-        return { ...prev, visible: false, pinned: false, elementId: null };
-      } else {
-        // Show new tooltip with proper positioning
-        const svgRect = svgRef.current?.getBoundingClientRect();
-        if (!svgRect) {
-          console.log('No SVG rect found for click positioning');
-          return prev;
-        }
-
-        // Calculate position relative to the SVG container
-        let x = event.offsetX || event.layerX || 0;
-        let y = event.offsetY || event.layerY || 0;
-        
-        // Simple offset from click position
-        const offset = { x: 10, y: -10 };
-        x += offset.x;
-        y += offset.y;
-        
-        // Keep tooltip within SVG bounds
-        x = Math.max(10, Math.min(x, width - 220));
-        y = Math.max(10, Math.min(y, height - 150));
-        
-        return {
-          visible: true,
-          x,
-          y,
-          data,
-          pinned: true,
-          elementId,
-        };
-      }
-    });
-  }, [width, height]);
-
-  // Render the visualization
+  // Draw the visualization
   useEffect(() => {
-    if (!svgRef.current || loading) return;
+    if (!svgRef.current) return;
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
 
-    // Create main group
-    const g = svg.append('g');
+    const margin = { top: 20, right: 20, bottom: 20, left: 20 };
+    const g = svg.append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    // Draw rink
-    drawHockeyRink(g);
+    const rinkWidth = width - margin.left - margin.right;
+    const rinkHeight = height - margin.top - margin.bottom;
+
+    // Draw rink background
+    const rink = g.append('g').attr('class', 'rink');
+
+    // Ice surface
+    rink.append('rect')
+      .attr('width', rinkWidth)
+      .attr('height', rinkHeight)
+      .attr('fill', '#f0f4f8')
+      .attr('stroke', '#cbd5e0')
+      .attr('stroke-width', 2)
+      .attr('rx', 28);
+
+    // Center ice red line (at rink center - left edge of view)
+    rink.append('line')
+      .attr('x1', 0)
+      .attr('y1', 0)
+      .attr('x2', 0)
+      .attr('y2', rinkHeight)
+      .attr('stroke', '#dc2626')
+      .attr('stroke-width', 4);
+
+    const blueLineX = xScale(25);  // Blue line at x=25
+    rink.append('line')
+      .attr('x1', blueLineX)
+      .attr('y1', 0)
+      .attr('x2', blueLineX)
+      .attr('y2', rinkHeight)
+      .attr('stroke', '#2563eb')
+      .attr('stroke-width', 4);
+
+    const goalLineX = xScale(89);  // Goal at x=89
+    rink.append('line')
+      .attr('x1', goalLineX)
+      .attr('y1', 0)
+      .attr('x2', goalLineX)
+      .attr('y2', rinkHeight)
+      .attr('stroke', '#dc2626')
+      .attr('stroke-width', 3);
+
+    // Goal itself (behind the goal line, in the net)
+    const goalDepth = 4; // 4 feet deep
+    const goalPostDistance = yScale(0) - yScale(3); // 3 feet on each side
+    const goalCenterY = rinkHeight / 2;
+
+    // Goal net (behind goal line)
+    rink.append('path')
+      .attr('d', `
+        M ${goalLineX} ${goalCenterY - goalPostDistance}
+        L ${goalLineX + goalDepth * 2} ${goalCenterY - goalPostDistance}
+        L ${goalLineX + goalDepth * 2} ${goalCenterY + goalPostDistance}
+        L ${goalLineX} ${goalCenterY + goalPostDistance}
+      `)
+      .attr('fill', 'rgba(100, 100, 100, 0.2)')
+      .attr('stroke', '#666')
+      .attr('stroke-width', 1)
+      .attr('stroke-dasharray', '2,1');
+
+    // Goal posts and crossbar
+    rink.append('rect')
+      .attr('x', goalLineX - 1)
+      .attr('y', goalCenterY - goalPostDistance)
+      .attr('width', 2)
+      .attr('height', goalPostDistance * 2)
+      .attr('fill', '#dc2626');
+
+    // Goal post circles (the actual posts)
+    [goalCenterY - goalPostDistance, goalCenterY + goalPostDistance].forEach(y => {
+      rink.append('circle')
+        .attr('cx', goalLineX)
+        .attr('cy', y)
+        .attr('r', 2.5)
+        .attr('fill', '#dc2626')
+        .attr('stroke', '#000')
+        .attr('stroke-width', 0.5);
+    });
+
+    
+    // Goal crease - proper semicircle extending left from goal line
+    const creaseRadius = Math.abs(yScale(6) - yScale(0)); // 6 feet in data coordinates
+
+    // Draw crease as semicircle extending left
+    rink.append('path')
+      .attr('d', `
+        M ${goalLineX} ${goalCenterY - creaseRadius}
+        A ${creaseRadius} ${creaseRadius} 0 1 0 ${goalLineX} ${goalCenterY + creaseRadius}
+        Z
+      `)
+      .attr('fill', 'rgba(219, 234, 254, 0.5)')
+      .attr('stroke', '#3b82f6')
+      .attr('stroke-width', 2);
+    
+
+
+    // Faceoff circles at x=69, y=±22
+    const faceoffCircles = [
+      { x: xScale(69), y: yScale(22) },
+      { x: xScale(69), y: yScale(-22) },
+    ];
+
+    // Draw faceoff circles
+    faceoffCircles.forEach(pos => {
+      // Outer circle
+      rink.append('circle')
+        .attr('cx', pos.x)
+        .attr('cy', pos.y)
+        .attr('r', 30)
+        .attr('fill', 'none')
+        .attr('stroke', '#dc2626')
+        .attr('stroke-width', 2);
+      
+      // Inner dot - INCREASED SIZE 4X
+      rink.append('circle')
+        .attr('cx', pos.x)
+        .attr('cy', pos.y)
+        .attr('r', 4)  // Changed from 1 to 4
+        .attr('fill', '#dc2626');
+      
+      // Hash marks
+      const hashLength = 4;
+      const hashOffset = 35;
+      
+      // Top and bottom hash marks
+      [-1, 1].forEach(dir => {
+        rink.append('line')
+          .attr('x1', pos.x - hashLength)
+          .attr('x2', pos.x + hashLength)
+          .attr('y1', pos.y + (hashOffset * dir))
+          .attr('y2', pos.y + (hashOffset * dir))
+          .attr('stroke', '#dc2626')
+          .attr('stroke-width', 2);
+      });
+      
+      // Left and right hash marks  
+      [-1, 1].forEach(dir => {
+        rink.append('line')
+          .attr('x1', pos.x + (hashOffset * dir))
+          .attr('x2', pos.x + (hashOffset * dir))
+          .attr('y1', pos.y - hashLength)
+          .attr('y2', pos.y + hashLength)
+          .attr('stroke', '#dc2626')
+          .attr('stroke-width', 2);
+      });
+    });
+
+    // Neutral zone dots at x=20, y=±22
+    const neutralDots = [
+      { x: xScale(20), y: yScale(22) },
+      { x: xScale(20), y: yScale(-22) },
+    ];
+
+    neutralDots.forEach(pos => {
+      rink.append('circle')
+        .attr('cx', pos.x)
+        .attr('cy', pos.y)
+        .attr('r', 4)  // INCREASED SIZE 4X
+        .attr('fill', '#dc2626');
+    });
+
+    {/* Game Situation Filters */}
+    <div className="border-t pt-4 mt-4">
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        Game Situations
+      </label>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={filters.emptyNet}
+            onChange={(e) => setFilters(prev => ({ ...prev, emptyNet: e.target.checked }))}
+            className="mr-2"
+          />
+          <span className="text-sm text-gray-700 dark:text-gray-300">Empty Net</span>
+        </label>
+        
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={filters.reboundGoals}
+            onChange={(e) => setFilters(prev => ({ ...prev, reboundGoals: e.target.checked }))}
+            className="mr-2"
+          />
+          <span className="text-sm text-gray-700 dark:text-gray-300">Rebound Goals</span>
+        </label>
+        
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={filters.powerPlay}
+            onChange={(e) => setFilters(prev => ({ ...prev, powerPlay: e.target.checked }))}
+            className="mr-2"
+          />
+          <span className="text-sm text-gray-700 dark:text-gray-300">Power Play</span>
+        </label>
+        
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={filters.penaltyKill}
+            onChange={(e) => setFilters(prev => ({ ...prev, penaltyKill: e.target.checked }))}
+            className="mr-2"
+          />
+          <span className="text-sm text-gray-700 dark:text-gray-300">Penalty Kill</span>
+        </label>
+        
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={filters.evenStrength}
+            onChange={(e) => setFilters(prev => ({ ...prev, evenStrength: e.target.checked }))}
+            className="mr-2"
+          />
+          <span className="text-sm text-gray-700 dark:text-gray-300">Even Strength</span>
+        </label>
+        
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={filters.shootout}
+            onChange={(e) => setFilters(prev => ({ ...prev, shootout: e.target.checked }))}
+            className="mr-2"
+          />
+          <span className="text-sm text-gray-700 dark:text-gray-300">Shootout</span>
+        </label>
+      </div>
+    </div>
+
+    {/* Shot Location Filter */}
+    <div className="border-t pt-4 mt-4">
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        Shot Location Zone
+      </label>
+      <div className="flex gap-2 flex-wrap mb-2">
+        <button
+          onClick={() => setFilters(prev => ({ ...prev, xCoordMin: 0, xCoordMax: 100 }))}
+          className={`px-3 py-1 text-xs rounded ${
+            filters.xCoordMin === 0 && filters.xCoordMax === 100
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+          }`}
+        >
+          All Zones
+        </button>
+        <button
+          onClick={() => setFilters(prev => ({ ...prev, xCoordMin: 0, xCoordMax: 25 }))}
+          className={`px-3 py-1 text-xs rounded ${
+            filters.xCoordMin === 0 && filters.xCoordMax === 25
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+          }`}
+        >
+          Beyond Blue Line
+        </button>
+        <button
+          onClick={() => setFilters(prev => ({ ...prev, xCoordMin: 25, xCoordMax: 69 }))}
+          className={`px-3 py-1 text-xs rounded ${
+            filters.xCoordMin === 25 && filters.xCoordMax === 69
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+          }`}
+        >
+          High Slot
+        </button>
+        <button
+          onClick={() => setFilters(prev => ({ ...prev, xCoordMin: 69, xCoordMax: 89 }))}
+          className={`px-3 py-1 text-xs rounded ${
+            filters.xCoordMin === 69 && filters.xCoordMax === 89
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+          }`}
+        >
+          Low Slot
+        </button>
+        <button
+          onClick={() => setFilters(prev => ({ ...prev, xCoordMin: 89, xCoordMax: 100 }))}
+          className={`px-3 py-1 text-xs rounded ${
+            filters.xCoordMin === 89 && filters.xCoordMax === 100
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+          }`}
+        >
+          Crease Area
+        </button>
+      </div>
+      <div className="text-xs text-gray-500 dark:text-gray-400">
+        Current range: x={filters.xCoordMin} to x={filters.xCoordMax}
+      </div>
+    </div>
+
+
+    // Add coordinate reference system for debugging
+    const debugMode = false; // Set to false to hide these helpers
+
+    if (debugMode) {
+      // Add X-axis coordinate labels
+      const xCoordLabels = [0, 25, 50, 75, 100];
+      xCoordLabels.forEach(coord => {
+        const xPos = xScale(coord);
+        
+        // Vertical reference line
+        rink.append('line')
+          .attr('x1', xPos)
+          .attr('y1', 0)
+          .attr('x2', xPos)
+          .attr('y2', rinkHeight)
+          .attr('stroke', '#10b981')
+          .attr('stroke-width', 0.5)
+          .attr('stroke-dasharray', '2,2')
+          .attr('opacity', 0.3);
+        
+        // Coordinate label
+        rink.append('text')
+          .attr('x', xPos)
+          .attr('y', -5)
+          .attr('text-anchor', 'middle')
+          .attr('font-size', '10px')
+          .attr('fill', '#10b981')
+          .text(`x=${coord}`);
+      });
+      
+      // Add Y-axis coordinate labels
+      const yCoordLabels = [-40, -20, 0, 20, 40];
+      yCoordLabels.forEach(coord => {
+        const yPos = yScale(coord);
+        
+        // Horizontal reference line
+        rink.append('line')
+          .attr('x1', 0)
+          .attr('y1', yPos)
+          .attr('x2', rinkWidth)
+          .attr('y2', yPos)
+          .attr('stroke', '#10b981')
+          .attr('stroke-width', 0.5)
+          .attr('stroke-dasharray', '2,2')
+          .attr('opacity', 0.3);
+        
+        // Coordinate label
+        rink.append('text')
+          .attr('x', -25)
+          .attr('y', yPos + 3)
+          .attr('text-anchor', 'middle')
+          .attr('font-size', '10px')
+          .attr('fill', '#10b981')
+          .text(`y=${coord}`);
+      });
+      
+      // Show actual positions of key rink features
+      const rinkInfo = g.append('g').attr('class', 'rink-info');
+      
+      // Info box
+      rinkInfo.append('rect')
+        .attr('x', 10)
+        .attr('y', rinkHeight - 80)
+        .attr('width', 200)
+        .attr('height', 70)
+        .attr('fill', 'rgba(255, 255, 255, 0.9)')
+        .attr('stroke', '#666')
+        .attr('stroke-width', 1);
+      
+      const infoText = [
+        `Red line: x=0`,
+        `Neutral dots: x=${(0.20 * 100).toFixed(0)}`,
+        `Blue line: x=${(0.40 * 100).toFixed(0)}`,
+        `Off. zone circles: x=${(0.69 * 100).toFixed(0)}`,
+        `Goal line: x=${(0.89 * 100).toFixed(0)}`
+      ];
+      
+      infoText.forEach((text, i) => {
+        rinkInfo.append('text')
+          .attr('x', 15)
+          .attr('y', rinkHeight - 60 + (i * 12))
+          .attr('font-size', '10px')
+          .attr('fill', '#333')
+          .text(text);
+      });
+    }
 
     // Draw hexagons
     if (filters.showHexagons && hexagonData.length > 0) {
@@ -545,364 +682,173 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
         .attr('class', 'hexagon')
         .attr('d', hexbinGenerator.hexagon())
         .attr('transform', d => `translate(${d.x},${d.y})`)
-        .style('fill', d => densityColorScale(d.count))
-        .style('stroke', '#fff')
+        .style('fill', d => colorScale(d.count))
+        .style('stroke', '#334155') // Darker stroke for better contrast
         .style('stroke-width', 0.5)
-        .style('opacity', 0.7)
-        .style('cursor', 'pointer');
-
-      // Hexagon tooltips and interactions - click only for touch-friendly experience
-      hexagons
-        .attr('data-element-id', (d, i) => `hexagon-${i}`)
-        .on('mouseenter', (event, d) => {
-          // Only visual feedback on hover, no tooltip
-          d3.select(event.currentTarget).style('opacity', 1);
-        })
-        .on('mouseleave', (event, d) => {
-          // Reset visual state if not pinned
-          if (!tooltip.pinned || tooltip.elementId !== `hexagon-${hexagonData.indexOf(d)}`) {
-            d3.select(event.currentTarget).style('opacity', 0.7);
-          }
-        })
-        .on('click', (event, d) => {
-          event.stopPropagation();
-          d3.select(event.currentTarget).style('opacity', 1);
-          const elementId = `hexagon-${hexagonData.indexOf(d)}`;
+        .style('opacity', 0.85) // Slightly higher opacity
+        .style('cursor', 'pointer')
+        .on('mouseover', function(event, d) {
+          d3.select(this)
+            .style('opacity', 1)
+            .style('stroke-width', 2);
           
-          // Calculate advanced metrics for the hexagon
-          const shotsOnGoal = d.shots.filter(shot => shot.shot_was_on_goal).length;
-          const goals = d.shots.filter(shot => shot.x_goal > 0.95).length;
-          const avgDistance = d.shots.reduce((sum, shot) => sum + shot.shot_distance, 0) / d.shots.length;
-          const avgAngle = d.shots.reduce((sum, shot) => sum + Math.abs(shot.shot_angle), 0) / d.shots.length;
-          const shotTypes = [...new Set(d.shots.map(shot => shot.shot_type))].join(', ');
-          const topShooter = d.shots.reduce((acc, shot) => {
-            acc[shot.shooter_name] = (acc[shot.shooter_name] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
-          const mostFrequentShooter = Object.entries(topShooter).sort(([,a], [,b]) => b - a)[0];
-          const powerPlayShots = d.shots.filter(shot => 
-            (shot.home_skaters_on_ice > 6 && shot.is_home_team) ||
-            (shot.away_skaters_on_ice > 6 && !shot.is_home_team)
-          ).length;
-          const evenStrengthShots = d.shots.filter(shot => 
-            shot.home_skaters_on_ice === 6 && shot.away_skaters_on_ice === 6
-          ).length;
-          const emptyNetShots = d.shots.filter(shot => shot.shot_on_empty_net).length;
+          setTooltip({
+            visible: true,
+            x: event.pageX + 10,
+            y: event.pageY - 10,
+            data: {
+              type: 'hexagon',
+              count: d.count,
+              avgXG: d.avgXG,
+              goals: d.goals,
+            }
+          });
+        })
+        .on('mousemove', function(event) {
+          setTooltip(prev => ({
+            ...prev,
+            x: event.pageX + 10,
+            y: event.pageY - 10,
+          }));
+        })
+        .on('mouseout', function() {
+          d3.select(this)
+            .style('opacity', 0.8)
+            .style('stroke-width', 0.5);
           
-          // Toggle tooltip on click
-          toggleTooltipPin(event, {
-            type: 'hexagon',
-            count: d.count,
-            avgXG: d.avgXG.toFixed(3),
-            shots: d.shots,
-            shotsOnGoal,
-            goals,
-            avgDistance: avgDistance.toFixed(1),
-            avgAngle: avgAngle.toFixed(1),
-            shotTypes,
-            mostFrequentShooter: mostFrequentShooter ? mostFrequentShooter[0] : 'N/A',
-            shooterCount: mostFrequentShooter ? mostFrequentShooter[1] : 0,
-            powerPlayShots,
-            evenStrengthShots,
-            emptyNetShots,
-            conversionRate: ((goals / d.count) * 100).toFixed(1),
-            onGoalRate: ((shotsOnGoal / d.count) * 100).toFixed(1),
-            isPinned: true,
-          }, elementId);
+          setTooltip(prev => ({ ...prev, visible: false }));
         });
-        
-      // Touch events for mobile
-      hexagons.on('touchstart', (event, d) => {
-        event.preventDefault();
-        event.stopPropagation();
-        d3.select(event.currentTarget).style('opacity', 1);
-        const elementId = `hexagon-${hexagonData.indexOf(d)}`;
-        
-        // Calculate the same advanced metrics for touch tooltip
-        const shotsOnGoal = d.shots.filter(shot => shot.shot_was_on_goal).length;
-        const goals = d.shots.filter(shot => shot.x_goal > 0.95).length;
-        const avgDistance = d.shots.reduce((sum, shot) => sum + shot.shot_distance, 0) / d.shots.length;
-        const avgAngle = d.shots.reduce((sum, shot) => sum + Math.abs(shot.shot_angle), 0) / d.shots.length;
-        const shotTypes = [...new Set(d.shots.map(shot => shot.shot_type))].join(', ');
-        const topShooter = d.shots.reduce((acc, shot) => {
-          acc[shot.shooter_name] = (acc[shot.shooter_name] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
-        const mostFrequentShooter = Object.entries(topShooter).sort(([,a], [,b]) => b - a)[0];
-        const powerPlayShots = d.shots.filter(shot => 
-          (shot.home_skaters_on_ice > 6 && shot.is_home_team) ||
-          (shot.away_skaters_on_ice > 6 && !shot.is_home_team)
-        ).length;
-        const evenStrengthShots = d.shots.filter(shot => 
-          shot.home_skaters_on_ice === 6 && shot.away_skaters_on_ice === 6
-        ).length;
-        const emptyNetShots = d.shots.filter(shot => shot.shot_on_empty_net).length;
-        
-        showTooltip(event, {
-          type: 'hexagon',
-          count: d.count,
-          avgXG: d.avgXG.toFixed(3),
-          shots: d.shots,
-          shotsOnGoal,
-          goals,
-          avgDistance: avgDistance.toFixed(1),
-          avgAngle: avgAngle.toFixed(1),
-          shotTypes,
-          mostFrequentShooter: mostFrequentShooter ? mostFrequentShooter[0] : 'N/A',
-          shooterCount: mostFrequentShooter ? mostFrequentShooter[1] : 0,
-          powerPlayShots,
-          evenStrengthShots,
-          emptyNetShots,
-          conversionRate: ((goals / d.count) * 100).toFixed(1),
-          onGoalRate: ((shotsOnGoal / d.count) * 100).toFixed(1),
-          isPinned: true,
-        }, elementId);
-      });
     }
 
     // Draw individual high-value shots
     if (filters.showIndividualShots) {
-      const highValueShots = filteredData.filter(d => d.x_goal > 0.15);
-
-      g.selectAll('.shot-dot')
+      const highValueShots = filteredData.filter(s => s.xGoal > 0.15);
+      
+      const shotMarkers = g.selectAll('.shot-marker')
         .data(highValueShots)
         .enter()
         .append('circle')
-        .attr('class', 'shot-dot')
-        .attr('data-element-id', (d, i) => `shot-${i}`)
-        .attr('cx', d => xScale(d.x_cord))
-        .attr('cy', d => yScale(d.y_cord))
-        .attr('r', d => Math.max(3, 2 + d.x_goal * 4)) // Minimum size for touch targets
-        .style('fill', d => xgColorScale(d.x_goal))
-        .style('stroke', '#333')
-        .style('stroke-width', 0.5)
-        .style('opacity', 0.8)
+        .attr('class', 'shot-marker')
+        .attr('cx', d => xScale(d.x))
+        .attr('cy', d => yScale(d.y))
+        .attr('r', d => 2 + (d.xGoal * 8))
+        .attr('fill', d => {
+          if (d.isGoal) return '#10b981';
+          if (d.isBlocked) return '#f59e0b';
+          if (d.isOnGoal) return '#3b82f6';
+          return '#ef4444';
+        })
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 1)
+        .attr('opacity', 0.7)
         .style('cursor', 'pointer')
-        .on('mouseenter', (event, d) => {
-          // Only visual feedback on hover, no tooltip
-          d3.select(event.currentTarget).attr('r', Math.max(4, (2 + d.x_goal * 4) * 1.2));
+        .on('mouseover', function(event, d) {
+          d3.select(this)
+            .attr('opacity', 1)
+            .attr('r', 2 + (d.xGoal * 12));
+          
+          setTooltip({
+            visible: true,
+            x: event.pageX + 10,
+            y: event.pageY - 10,
+            data: {
+              type: 'shot',
+              outcome: d.outcome,
+              shooter: d.shooter,
+              team: d.team,
+              shotType: d.shotType,
+              shotDistance: d.shotDistance,
+              shotAngle: d.shotAngle,
+              xGoal: d.xGoal,
+              period: d.period,
+            }
+          });
         })
-        .on('mouseleave', (event, d) => {
-          // Reset visual state if not pinned
-          if (!tooltip.pinned || tooltip.elementId !== `shot-${highValueShots.indexOf(d)}`) {
-            d3.select(event.currentTarget).attr('r', Math.max(3, 2 + d.x_goal * 4));
-          }
+        .on('mousemove', function(event) {
+          setTooltip(prev => ({
+            ...prev,
+            x: event.pageX + 10,
+            y: event.pageY - 10,
+          }));
         })
-        .on('click', (event, d) => {
-          event.stopPropagation();
-          d3.select(event.currentTarget).attr('r', Math.max(4, (2 + d.x_goal * 4) * 1.2));
-          const elementId = `shot-${highValueShots.indexOf(d)}`;
-          toggleTooltipPin(event, {
-            type: 'shot',
-            ...d,
-            isPinned: true,
-          }, elementId);
-        })
-        .on('touchstart', (event, d) => {
-          event.preventDefault();
-          event.stopPropagation();
-          d3.select(event.currentTarget).attr('r', Math.max(4, (2 + d.x_goal * 4) * 1.2));
-          const elementId = `shot-${highValueShots.indexOf(d)}`;
-          showTooltip(event, {
-            type: 'shot',
-            ...d,
-            isPinned: true,
-          }, elementId);
+        .on('mouseout', function(event, d) {
+          d3.select(this)
+            .attr('opacity', 0.7)
+            .attr('r', 2 + (d.xGoal * 8));
+          
+          setTooltip(prev => ({ ...prev, visible: false }));
         });
     }
 
-  }, [filteredData, hexagonData, filters, xScale, yScale, hexbinGenerator, densityColorScale, xgColorScale, loading, drawHockeyRink, showTooltip, hideTooltip, toggleTooltipPin, tooltip.pinned]);
+  }, [filteredData, hexagonData, filters.showHexagons, filters.showIndividualShots, 
+      width, height, xScale, yScale, hexbinGenerator, colorScale]);
 
-  // Fetch available teams on mount
-  useEffect(() => {
-    fetchAvailableTeams();
-  }, [fetchAvailableTeams]);
-
-  // Fetch data when filters change (only if teams are selected)
-  useEffect(() => {
-    fetchShotData();
-  }, [fetchShotData]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showTeamDropdown && !event.target) {
-        setShowTeamDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showTeamDropdown]);
-
-  // Update filter function
-  const updateFilter = (key: keyof FilterState, value: string | number | boolean | string[] | number[]) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-  };
-
-  // Filter teams based on search term
-  const filteredTeams = filterOptions.teams.filter(team => 
-    team.toLowerCase().includes(teamSearchTerm.toLowerCase())
-  );
-
-  // Handle team selection
-  const handleTeamSelect = (team: string) => {
-    const currentTeams = filters.teams || [];
-    const newTeams = currentTeams.includes(team)
-      ? currentTeams.filter(t => t !== team)
-      : [...currentTeams, team];
-    
-    updateFilter('teams', newTeams);
-    // Close the dropdown after selection
-    setShowTeamDropdown(false);
-    setTeamSearchTerm(''); // Also clear the search term
-  };
-
-  // Handle team removal
-  const handleTeamRemove = (team: string) => {
-    const currentTeams = filters.teams || [];
-    updateFilter('teams', currentTeams.filter(t => t !== team));
-  };
-
-  // Close pinned tooltips when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (tooltip.pinned && !event.target) {
-        hideTooltip();
-      }
-    };
-
-    if (tooltip.pinned) {
-      document.addEventListener('click', handleClickOutside);
-      document.addEventListener('touchstart', handleClickOutside);
+  // Toggle filter helper
+  const toggleArrayFilter = (filterKey: string, value: any) => {
+  setFilters(prev => {
+    if (filterKey in prev && Array.isArray(prev[filterKey as keyof typeof prev])) {
+      const currentArray = prev[filterKey as keyof typeof prev] as any[];
+      const newArray = currentArray.includes(value)
+        ? currentArray.filter(v => v !== value)
+        : [...currentArray, value];
+      return { ...prev, [filterKey]: newArray };
     }
-
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, [tooltip.pinned, hideTooltip]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-300">Loading shot data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-96 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-        <div className="text-center">
-          <p className="text-red-600 dark:text-red-400">Error: {error}</p>
-          <button 
-            onClick={() => fetchShotData()}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+    return prev;
+  });
+};
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 ${className}`}>
-      {/* Controls Panel */}
-      <div className="mb-6 space-y-4">
-        <div className="flex flex-wrap gap-4 items-center">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Interactive Shot Map ({filteredData.length.toLocaleString()} shots)
-          </h3>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              Normalized View (All shots attacking right)
-            </span>
+    <div className="w-full space-y-4">
+      {/* Filter Controls */}
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-4">
+        {/* Shot Outcome Filters */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Shot Outcomes
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: 'goal', label: 'Goals', color: 'bg-green-500' },
+              { value: 'save', label: 'Saves', color: 'bg-blue-500' },
+              { value: 'block', label: 'Blocks', color: 'bg-orange-500' },
+              { value: 'miss', label: 'Misses', color: 'bg-red-500' },
+            ].map(outcome => (
+              <button
+                key={outcome.value}
+                onClick={() => toggleArrayFilter('outcomes', outcome.value)}
+                className={`px-3 py-1 rounded-full text-sm flex items-center gap-2 transition-all ${
+                  filters.outcomes.includes(outcome.value)
+                    ? 'bg-gray-800 text-white border-2 border-gray-600'
+                    : 'bg-gray-400 text-gray-200 border-2 border-gray-500'
+                }`}
+              >
+                <span className={`w-3 h-3 rounded-full ${outcome.color}`}></span>
+                {outcome.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Filter Controls */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Team Filter - Searchable Multi-Select */}
-          <div className="relative">
+        {/* Team Filter */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Teams *
+              Teams
             </label>
-            
-            {/* Selected Teams Display */}
-            {filters.teams && filters.teams.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-2">
-                {filters.teams.map(team => (
-                  <span
-                    key={team}
-                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
-                  >
-                    {team}
-                    <button
-                      type="button"
-                      onClick={() => handleTeamRemove(team)}
-                      className="ml-1 h-4 w-4 rounded-full inline-flex items-center justify-center text-blue-600 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 hover:text-blue-500 dark:hover:text-blue-100"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Search Input */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder={filters.teams?.length ? "Add more teams..." : "Search and select teams..."}
-                value={teamSearchTerm}
-                onChange={(e) => setTeamSearchTerm(e.target.value)}
-                onFocus={() => setShowTeamDropdown(true)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              
-              {/* Dropdown */}
-              {showTeamDropdown && filteredTeams.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-40 overflow-y-auto">
-                  {filteredTeams.slice(0, 10).map(team => {
-                    const isSelected = filters.teams?.includes(team) || false;
-                    return (
-                      <button
-                        key={team}
-                        type="button"
-                        onClick={() => handleTeamSelect(team)}
-                        className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:bg-gray-50 dark:focus:bg-gray-600 focus:outline-none ${
-                          isSelected
-                            ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-200'
-                            : 'text-gray-900 dark:text-gray-100'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span>{team}</span>
-                          {isSelected && (
-                            <span className="text-blue-600 dark:text-blue-400">✓</span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            
-            {/* No teams selected message */}
-            {(!filters.teams || filters.teams.length === 0) && (
-              <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
-                Please select at least one team to view shot data
-              </p>
-            )}
+            <select
+              multiple
+              value={filters.teams}
+              onChange={(e) => {
+                const selected = Array.from(e.target.selectedOptions, option => option.value);
+                setFilters(prev => ({ ...prev, teams: selected }));
+              }}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              size={3}
+            >
+              {filterOptions.teams.map(team => (
+                <option key={team} value={team}>{team}</option>
+              ))}
+            </select>
           </div>
 
           {/* Period Filter */}
@@ -910,58 +856,20 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Periods
             </label>
-            <div className="space-y-2">
-              {[1, 2, 3].map(period => (
-                <label key={period} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={filters.periods?.includes(period) || false}
-                    onChange={(e) => {
-                      const periods = filters.periods || [];
-                      if (e.target.checked) {
-                        updateFilter('periods', [...periods, period]);
-                      } else {
-                        updateFilter('periods', periods.filter(p => p !== period));
-                      }
-                    }}
-                    className="mr-2"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Period {period}</span>
-                </label>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4].map(period => (
+                <button
+                  key={period}
+                  onClick={() => toggleArrayFilter('periods', period)}
+                  className={`px-3 py-1 rounded text-sm ${
+                    filters.periods.includes(period)
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-gray-700 border border-gray-300'
+                  }`}
+                >
+                  {period === 4 ? 'OT' : period}
+                </button>
               ))}
-            </div>
-          </div>
-
-          {/* xG Range */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Expected Goals Range
-            </label>
-            <div className="space-y-2">
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={filters.xGoalMin || 0}
-                onChange={(e) => updateFilter('xGoalMin', Number(e.target.value))}
-                className="w-full"
-              />
-              <div className="text-xs text-gray-600 dark:text-gray-400">
-                Min: {(filters.xGoalMin || 0).toFixed(2)}
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={filters.xGoalMax || 1}
-                onChange={(e) => updateFilter('xGoalMax', Number(e.target.value))}
-                className="w-full"
-              />
-              <div className="text-xs text-gray-600 dark:text-gray-400">
-                Max: {(filters.xGoalMax || 1).toFixed(2)}
-              </div>
             </div>
           </div>
 
@@ -975,291 +883,330 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
                 <input
                   type="checkbox"
                   checked={filters.showHexagons}
-                  onChange={(e) => updateFilter('showHexagons', e.target.checked)}
+                  onChange={(e) => setFilters(prev => ({ ...prev, showHexagons: e.target.checked }))}
                   className="mr-2"
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Heat Map</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Show Heat Map Overlay</span>
               </label>
               <label className="flex items-center">
                 <input
                   type="checkbox"
                   checked={filters.showIndividualShots}
-                  onChange={(e) => updateFilter('showIndividualShots', e.target.checked)}
+                  onChange={(e) => setFilters(prev => ({ ...prev, showIndividualShots: e.target.checked }))}
                   className="mr-2"
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300">High-Value Shots</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Show High-Value Shots (xG &gt; 0.15)</span>
               </label>
-              <div className="mt-2">
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                  Heat Map Size: {filters.hexagonSize}
-                </label>
-                <input
-                  type="range"
-                  min="5"
-                  max="30"
-                  value={filters.hexagonSize}
-                  onChange={(e) => updateFilter('hexagonSize', Number(e.target.value))}
-                  className="w-full"
-                />
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Quick Filters */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => updateFilter('xGoalMin', 0.8)}
-            className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-full text-sm hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors"
-          >
-            High Quality Only (xG &gt; 0.8)
-          </button>
-          <button
-            onClick={() => updateFilter('xGoalMin', 0.15)}
-            className="px-3 py-1 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-full text-sm hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
-          >
-            High Danger Area (xG &gt; 0.15)
-          </button>
-          <button
-            onClick={() => setFilters(prev => ({ ...prev, teams: [], periods: [], xGoalMin: 0, xGoalMax: 1 }))}
-            className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-          >
-            Clear Filters
-          </button>
-        </div>
+        {/* xGoal Range Slider */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Expected Goals (xG) Filter: {filters.xGoalMin.toFixed(2)} - {filters.xGoalMax.toFixed(2)}
+            </label>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              Filter shots by their scoring probability (0.00 = 0% chance, 1.00 = 100% chance)
+            </p>
+            
+            <div className="space-y-3">
+              {/* Side by side sliders */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Min slider */}
+                <div>
+                  <label className="text-xs text-gray-600 dark:text-gray-400">
+                    Minimum xG: {filters.xGoalMin.toFixed(2)}
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={filters.xGoalMin}
+                    onChange={(e) => {
+                      const newMin = parseFloat(e.target.value);
+                      setFilters(prev => ({
+                        ...prev,
+                        xGoalMin: newMin,
+                        // Automatically adjust max if it's less than new min
+                        xGoalMax: Math.max(newMin, prev.xGoalMax)
+                      }));
+                    }}
+                    className="w-full"
+                  />
+                </div>
+                
+                {/* Max slider */}
+                <div>
+                  <label className="text-xs text-gray-600 dark:text-gray-400">
+                    Maximum xG: {filters.xGoalMax.toFixed(2)}
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={filters.xGoalMax}
+                    onChange={(e) => {
+                      const newMax = parseFloat(e.target.value);
+                      setFilters(prev => ({
+                        ...prev,
+                        xGoalMax: newMax,
+                        // Automatically adjust min if it's greater than new max
+                        xGoalMin: Math.min(newMax, prev.xGoalMin)
+                      }));
+                    }}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+              
+              {/* Visual range indicator */}
+              <div className="relative h-2 bg-gray-200 dark:bg-gray-600 rounded">
+                <div 
+                  className="absolute h-2 bg-blue-500 rounded"
+                  style={{
+                    left: `${filters.xGoalMin * 100}%`,
+                    width: `${(filters.xGoalMax - filters.xGoalMin) * 100}%`
+                  }}
+                ></div>
+              </div>
+              
+              {/* Quick presets */}
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => setFilters(prev => ({ ...prev, xGoalMin: 0, xGoalMax: 1 }))}
+                  className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                >
+                  All Shots
+                </button>
+                <button
+                  onClick={() => setFilters(prev => ({ ...prev, xGoalMin: 0.15, xGoalMax: 1 }))}
+                  className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                >
+                  High Danger (&gt;0.15)
+                </button>
+                <button
+                  onClick={() => setFilters(prev => ({ ...prev, xGoalMin: 0.05, xGoalMax: 0.15 }))}
+                  className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                >
+                  Medium (0.05-0.15)
+                </button>
+                <button
+                  onClick={() => setFilters(prev => ({ ...prev, xGoalMin: 0, xGoalMax: 0.05 }))}
+                  className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                >
+                  Low (&lt;0.05)
+                </button>
+              </div>
+            </div>
+          </div>
+
+        {/* Hexagon Size (when heat map is enabled) */}
+        {filters.showHexagons && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Heat Map Granularity: {filters.hexagonSize}px
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Fine</span>
+              <input
+                type="range"
+                min="5"
+                max="30"
+                value={filters.hexagonSize}
+                onChange={(e) => setFilters(prev => ({ ...prev, hexagonSize: parseInt(e.target.value) }))}
+                className="w-full"
+              />
+              <span className="text-xs text-gray-600 dark:text-gray-400">Coarse</span>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Smaller values show more detail, larger values show broader patterns
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Shot Map */}
-      <div className="relative">
+      {/* Statistics Bar */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Total Shots</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{stats.goals}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Goals</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{stats.saves}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Saves</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600">{stats.blocks}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Blocks</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-600">{stats.misses}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Misses</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.shootingPct.toFixed(1)}%</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Shooting %</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.avgXG.toFixed(3)}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Avg xG</div>
+            </div>
+          </div>
+        </div>
+
+      {/* SVG Visualization */}
+      <div className="bg-white rounded-lg shadow-lg p-2">
         <svg
           ref={svgRef}
           width={width}
           height={height}
-          className="border border-gray-200 dark:border-gray-600 rounded-lg bg-white"
+          className="w-full"
+          style={{ maxWidth: width }}
         />
-
-        {/* Enhanced Tooltip */}
-        {tooltip.visible && tooltip.data && (
-          <div
-            className={`absolute bg-gray-900 text-white rounded-lg shadow-xl z-50 transition-all duration-200 max-w-xs ${
-              tooltip.pinned 
-                ? 'pointer-events-auto border-2 border-blue-400' 
-                : 'pointer-events-none'
-            }`}
-            style={{
-              left: tooltip.x,
-              top: tooltip.y,
-              transform: tooltip.pinned ? 'scale(1.05)' : 'scale(1)',
-            }}
-          >
-            {/* Close button for pinned tooltips */}
-            {tooltip.pinned && (
-              <button
-                onClick={() => hideTooltip()}
-                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-bold transition-colors"
-                aria-label="Close tooltip"
-              >
-                ×
-              </button>
-            )}
-            
-            <div className="p-3">
-              {tooltip.data.type === 'hexagon' ? (
-                <div className="space-y-1">
-                  <div className="font-semibold text-blue-300 flex items-center">
-                    <div className="w-3 h-3 bg-orange-400 rounded mr-2"></div>
-                    Zone Analytics
-                  </div>
-                  <div className="text-sm space-y-1">
-                    {/* Shot Volume & Quality */}
-                    <div className="bg-gray-800 rounded p-2 mb-2">
-                      <div className="text-xs text-gray-400 mb-1">Shot Volume & Quality</div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">Total Shots:</span>
-                        <span className="font-medium text-white">{String(tooltip.data.count || 0)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">Avg xG:</span>
-                        <span className="font-medium text-green-400">{String(tooltip.data.avgXG || '0.000')}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">On Goal:</span>
-                        <span className="font-medium text-blue-400">{String(tooltip.data.shotsOnGoal || 0)} ({String(tooltip.data.onGoalRate || '0')}%)</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">Goals:</span>
-                        <span className="font-medium text-yellow-400">{String(tooltip.data.goals || 0)} ({String(tooltip.data.conversionRate || '0')}%)</span>
-                      </div>
-                    </div>
-                    
-                    {/* Shot Characteristics */}
-                    <div className="bg-gray-800 rounded p-2 mb-2">
-                      <div className="text-xs text-gray-400 mb-1">Shot Characteristics</div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">Avg Distance:</span>
-                        <span className="font-medium">{String(tooltip.data.avgDistance || '0')}ft</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">Avg Angle:</span>
-                        <span className="font-medium">{String(tooltip.data.avgAngle || '0')}°</span>
-                      </div>
-                      <div className="text-xs text-gray-300 mt-1">
-                        <span className="text-gray-400">Types:</span> {String(tooltip.data.shotTypes || 'N/A')}
-                      </div>
-                    </div>
-                    
-                    {/* Game Situations */}
-                    <div className="bg-gray-800 rounded p-2 mb-2">
-                      <div className="text-xs text-gray-400 mb-1">Game Situations</div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-300">Even Strength:</span>
-                        <span className="font-medium">{String(tooltip.data.evenStrengthShots || 0)}</span>
-                      </div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-300">Power Play:</span>
-                        <span className="font-medium text-orange-400">{String(tooltip.data.powerPlayShots || 0)}</span>
-                      </div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-300">Empty Net:</span>
-                        <span className="font-medium text-red-400">{String(tooltip.data.emptyNetShots || 0)}</span>
-                      </div>
-                    </div>
-                    
-                    {/* Top Shooter */}
-                    <div className="bg-gray-800 rounded p-2 mb-2">
-                      <div className="text-xs text-gray-400 mb-1">Top Shooter</div>
-                      <div className="text-xs">
-                        <span className="font-medium text-yellow-300">{String(tooltip.data.mostFrequentShooter || 'N/A')}</span>
-                        {tooltip.data.shooterCount && Number(tooltip.data.shooterCount) > 0 ? (
-                          <span className="text-gray-400"> ({String(tooltip.data.shooterCount)} shots)</span>
-                        ) : null}
-                      </div>
-                    </div>
-                    
-                    <div className="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-700">
-                      {tooltip.pinned ? 'Click × to close' : 'Click to pin for details'}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <div className="font-semibold text-yellow-300 flex items-center">
-                    <div 
-                      className="w-3 h-3 rounded-full mr-2"
-                      style={{
-                        backgroundColor: typeof tooltip.data.x_goal === 'number' 
-                          ? `hsl(${(tooltip.data.x_goal * 60)}, 70%, 50%)` 
-                          : '#6b7280'
-                      }}
-                    ></div>
-                    {String(tooltip.data.shooter_name || 'Unknown Player')}
-                  </div>
-                  <div className="text-sm space-y-1 ml-5">
-                    <div className="flex justify-between">
-                      <span className="text-gray-300">Team:</span>
-                      <span className="font-medium">{String(tooltip.data.team_code || 'N/A')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-300">Period:</span>
-                      <span className="font-medium">{String(tooltip.data.period || 'N/A')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-300">xG:</span>
-                      <span className="font-medium text-green-400">
-                        {typeof tooltip.data.x_goal === 'number' ? tooltip.data.x_goal.toFixed(3) : '0.000'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-300">Distance:</span>
-                      <span className="font-medium">
-                        {typeof tooltip.data.shot_distance === 'number' ? tooltip.data.shot_distance.toFixed(1) : '0'}ft
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-300">Type:</span>
-                      <span className="font-medium">{String(tooltip.data.shot_type || 'N/A')}</span>
-                    </div>
-                    <div className="text-xs text-gray-400 mt-2 pt-1 border-t border-gray-700">
-                      {tooltip.pinned ? 'Click × to close' : 'Click to pin this tooltip'}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            {/* Mobile-friendly tap indicator */}
-            <div className="sm:hidden">
-              {!tooltip.pinned && (
-                <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-700 text-xs px-2 py-1 rounded text-center whitespace-nowrap">
-                  Tap to pin
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
+      {/* Tooltip */}
+      {tooltip.visible && tooltip.data && (
+        <div
+          className="fixed bg-gray-900 text-white rounded-lg shadow-xl p-3 z-50 pointer-events-none"
+          style={{
+            left: tooltip.x,
+            top: tooltip.y,
+            transform: 'translate(-50%, -100%)',
+          }}
+        >
+          {tooltip.data.type === 'hexagon' ? (
+            <div>
+              <div className="font-bold mb-1">Zone Statistics</div>
+              <div className="text-sm space-y-1">
+                <div>Shots: {tooltip.data.count}</div>
+                <div>Goals: {tooltip.data.goals}</div>
+                <div>Avg xG: {tooltip.data.avgXG.toFixed(3)}</div>
+                <div>Shooting %: {((tooltip.data.goals / tooltip.data.count) * 100).toFixed(1)}%</div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="font-bold mb-1 capitalize">{tooltip.data.outcome}</div>
+              <div className="text-sm space-y-1">
+                <div>Shooter: {tooltip.data.shooter}</div>
+                <div>Team: {tooltip.data.team}</div>
+                <div>Type: {tooltip.data.shotType}</div>
+                <div>Distance: {tooltip.data.shotDistance.toFixed(1)} ft</div>
+                <div>Angle: {Math.abs(tooltip.data.shotAngle).toFixed(1)}°</div>
+                <div>xG: {tooltip.data.xGoal.toFixed(3)}</div>
+                <div>Period: {tooltip.data.period}</div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Legend */}
-      <div className="mt-4 space-y-3">
-        {/* Heat Map Legend */}
-        {filters.showHexagons && hexagonData.length > 0 && (
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Heat Map (Shot Density)</h4>
-            <div className="flex items-center space-x-4">
-              {/* Density color scale */}
-              <div className="flex items-center">
-                <div className="flex mr-2">
-                  <div className="w-3 h-3 bg-orange-100 border border-gray-300" title="Low density (1-2 shots)"></div>
-                  <div className="w-3 h-3 bg-orange-200 border border-gray-300" title="Low-medium density"></div>
-                  <div className="w-3 h-3 bg-orange-400 border border-gray-300" title="Medium density"></div>
-                  <div className="w-3 h-3 bg-orange-600 border border-gray-300" title="High density"></div>
-                  <div className="w-3 h-3 bg-red-600 border border-gray-300" title="Very high density (10+ shots)"></div>
-                </div>
-                <span className="text-xs text-gray-600 dark:text-gray-400">Few shots → Many shots</span>
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Legend</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Heat Map Legend */}
+          {filters.showHexagons && hexagonData.length > 0 && (
+            <div className="col-span-2">
+              <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Shot Density Heat Map
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                Max: {Math.max(...hexagonData.map(d => d.count))} shots/area
+              <div className="space-y-2">
+                {/* Color gradient bar with values */}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-600 dark:text-gray-400 w-8">0</span>
+                    <div className="flex h-4 flex-1 relative">
+                      {/* Gradient bar */}
+                      <div 
+                        className="w-full h-full rounded border border-gray-300"
+                        style={{
+                          background: 'linear-gradient(to right, #e3f2fd 0%, #90caf9 25%, #42a5f5 50%, #1976d2 75%, #0d47a1 100%)'
+                        }}
+                      ></div>
+                      {/* Tick marks */}
+                      <div className="absolute inset-0 flex justify-between px-1">
+                        {[0, 25, 50, 75, 100].map(percent => (
+                          <div 
+                            key={percent}
+                            className="w-px h-full bg-gray-600 opacity-50"
+                            style={{ marginLeft: percent === 0 ? '-1px' : 'auto' }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-600 dark:text-gray-400 w-12 text-right">
+                      {Math.max(...hexagonData.map(d => d.count))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between px-10">
+                    <span className="text-xs text-gray-500">Low Density</span>
+                    <span className="text-xs text-gray-500">High Density</span>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  Shows # of shots per hexagon area (size: {filters.hexagonSize}px)
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Shot Outcomes Legend */}
+          <div>
+            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Shot Outcomes</div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-green-500 border border-white"></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Goals</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500 border border-white"></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Saves</span>
               </div>
             </div>
           </div>
-        )}
-
-        {/* Individual Shots Legend */}
-        {filters.showIndividualShots && (
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">High-Value Shots (xG &gt; 0.15)</h4>
-            <div className="flex items-center space-x-4">
-              {/* xG color scale */}
-              <div className="flex items-center">
-                <div className="flex mr-2">
-                  <div className="w-3 h-3 bg-purple-900 rounded-full border border-gray-300" title="xG: 0.15-0.3"></div>
-                  <div className="w-3 h-3 bg-blue-600 rounded-full border border-gray-300" title="xG: 0.3-0.5"></div>
-                  <div className="w-3 h-3 bg-green-500 rounded-full border border-gray-300" title="xG: 0.5-0.7"></div>
-                  <div className="w-3 h-3 bg-yellow-400 rounded-full border border-gray-300" title="xG: 0.7-0.9"></div>
-                  <div className="w-3 h-3 bg-yellow-200 rounded-full border border-gray-300" title="xG: 0.9+"></div>
-                </div>
-                <span className="text-xs text-gray-600 dark:text-gray-400">Low xG → High xG</span>
+          
+          <div>
+            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">&nbsp;</div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-orange-500 border border-white"></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Blocks</span>
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                Circle size = xG value
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500 border border-white"></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Misses</span>
               </div>
             </div>
           </div>
-        )}
 
-
-        {/* Statistics */}
-        <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-300 pt-2 border-t border-gray-200 dark:border-gray-600">
-          <div className="flex space-x-4">
-            <span>Total Shots: <strong>{filteredData.length.toLocaleString()}</strong></span>
-            <span>Total xG: <strong>{filteredData.reduce((sum, shot) => sum + shot.x_goal, 0).toFixed(2)}</strong></span>
-            {filteredData.length > 0 && (
-              <span>Avg xG/Shot: <strong>{(filteredData.reduce((sum, shot) => sum + shot.x_goal, 0) / filteredData.length).toFixed(3)}</strong></span>
-            )}
-          </div>
-          {filters.teams && filters.teams.length > 0 && (
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              {filters.teams.length === 1 ? filters.teams[0] : `${filters.teams.length} teams selected`}
+          {/* Size Legend */}
+          {filters.showIndividualShots && (
+            <div>
+              <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Shot Quality (xG)</div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-gray-600 border border-white"></div>
+                  <span className="text-xs text-gray-600 dark:text-gray-400">Low</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-gray-600 border border-white"></div>
+                  <span className="text-xs text-gray-600 dark:text-gray-400">Med</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-4 h-4 rounded-full bg-gray-600 border border-white"></div>
+                  <span className="text-xs text-gray-600 dark:text-gray-400">High</span>
+                </div>
+              </div>
             </div>
           )}
         </div>
