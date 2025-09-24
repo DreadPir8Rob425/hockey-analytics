@@ -60,6 +60,8 @@ interface ProcessedShot {
   team: string;
   shooter: string;
   outcome: 'goal' | 'save' | 'block' | 'miss';
+  isOther: boolean;
+  isHomeTeamShot: boolean;
   
   // Add these new fields
   isEmptyNet: boolean;
@@ -87,15 +89,16 @@ interface InteractiveHockeyHeatMapProps {
 
 const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
   csvData,
-  width = 900,
-  height = 450,
+  width = 940,
+  height = 400,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   
   // Filter states
   const [filters, setFilters] = useState({
     // Existing filters
-    teams: [] as string[],
+    showHome: true,  // Changed from teams array
+    showAway: true,  // Changed from teams array
     periods: [] as number[],
     outcomes: ['goal', 'save', 'block', 'miss'] as string[],
     shotTypes: [] as string[],
@@ -105,16 +108,18 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
     showIndividualShots: false,
     hexagonSize: 15,
     
-    // New filters
-    emptyNet: false,
-    reboundGoals: false,
-    powerPlay: false,
-    penaltyKill: false,
-    evenStrength: false,
-    shootout: false,
-    xCoordMin: 0,
+    // Updated situation filters - now for excluding
+    excludeEmptyNet: false,
+    excludeRebounds: false,  // Changed name for clarity
+    excludePowerPlay: false,
+    excludePenaltyKill: false,
+    excludeEvenStrength: false,
+    excludeShootout: false,
+    excludeOther: false,  // NEW: for situations that don't fit any category
+    xCoordMin: -100,
     xCoordMax: 100,
   });
+
 
   // Tooltip state
   const [tooltip, setTooltip] = useState<{
@@ -144,9 +149,13 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
   const processedData = useMemo((): ProcessedShot[] => {
     return csvData.map(shot => {
       // Use adjusted coordinates if available
-      const x = shot.xCordAdjusted ?? shot.arenaAdjustedXCord ?? shot.xCord ?? 0;
-      const y = shot.yCordAdjusted ?? shot.arenaAdjustedYCord ?? shot.yCord ?? 0;
+      const x = shot.xCord ?? 0;
+      const y = shot.yCord ?? 0;
       
+      // Determine which end the shot is from
+      const isRightEnd = x > 0;
+      const isLeftEnd = x < 0;
+
       // Determine game situations
       const homeSk = shot.homeSkatersOnIce ?? 5;
       const awaySk = shot.awaySkatersOnIce ?? 5;
@@ -165,8 +174,17 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
       const isPowerPlay = (isHome && homeSk > awaySk) || (!isHome && awaySk > homeSk);
       const isPenaltyKill = (isHome && homeSk < awaySk) || (!isHome && awaySk < homeSk);
       const isEvenStrength = homeSk === awaySk && homeSk === 5;
-      const isShootout = shot.period > 4 || (shot.period === 4 && homeSk === 1 && awaySk === 1);
+      const period = shot.period ?? 0;
+      const isShootout = period > 4 || (period === 4 && homeSk === 1 && awaySk === 1);
       
+      const isSpecialSituation = isEmptyNet || isRebound || isPowerPlay || 
+                                  isPenaltyKill || isShootout || 
+                                  (homeSk === 5 && awaySk === 5); // Even strength is also special
+      const isOther = !isSpecialSituation;
+
+      const isHomeTeamShot = shot.team === shot.homeTeamCode || 
+                             shot.teamCode === shot.homeTeamCode;
+
       let outcome: 'goal' | 'save' | 'block' | 'miss';
       if (isGoal) outcome = 'goal';
       else if (isBlocked) outcome = 'block';
@@ -174,8 +192,10 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
       else outcome = 'miss';
       
       return {
-        x: Math.abs(x), // Use absolute value for offensive zone
+        x,
         y,
+        isRightEnd,
+        isLeftEnd,
         xGoal: shot.xGoal ?? 0,
         isGoal,
         isOnGoal,
@@ -194,27 +214,36 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
         isEvenStrength,
         isShootout,
         outcome,
+        isOther,  // Add this new field
+        isHomeTeamShot,  // Add this new field
       };
-    }).filter(shot => shot.x !== 0 || shot.y !== 0);
+    }).filter(shot => {
+      // Only filter out invalid data
+      return !(shot.x === 0 && shot.y === 0);
+    });
   }, [csvData]);
 
   // Apply filters to get filtered data
   const filteredData = useMemo(() => {
     return processedData.filter(shot => {
-      // Existing filters
-      if (filters.teams.length > 0 && !filters.teams.includes(shot.team)) return false;
+      // Home/Away filter
+      if (!filters.showHome && shot.isHomeTeamShot) return false;
+      if (!filters.showAway && !shot.isHomeTeamShot) return false;
+      
+      // Other existing filters
       if (filters.periods.length > 0 && !filters.periods.includes(shot.period)) return false;
       if (filters.outcomes.length > 0 && !filters.outcomes.includes(shot.outcome)) return false;
       if (filters.shotTypes.length > 0 && !filters.shotTypes.includes(shot.shotType)) return false;
       if (shot.xGoal < filters.xGoalMin || shot.xGoal > filters.xGoalMax) return false;
       
-      // New situation filters (only apply if checked)
-      if (filters.emptyNet && !shot.isEmptyNet) return false;
-      if (filters.reboundGoals && !(shot.isGoal && shot.isRebound)) return false;
-      if (filters.powerPlay && !shot.isPowerPlay) return false;
-      if (filters.penaltyKill && !shot.isPenaltyKill) return false;
-      if (filters.evenStrength && !shot.isEvenStrength) return false;
-      if (filters.shootout && !shot.isShootout) return false;
+      // Situation exclusion filters
+      if (filters.excludeEmptyNet && shot.isEmptyNet) return false;
+      if (filters.excludeRebounds && shot.isRebound) return false;  // Note: This is ANY rebound shot, not just goals
+      if (filters.excludePowerPlay && shot.isPowerPlay) return false;
+      if (filters.excludePenaltyKill && shot.isPenaltyKill) return false;
+      if (filters.excludeEvenStrength && shot.isEvenStrength) return false;
+      if (filters.excludeShootout && shot.isShootout) return false;
+      if (filters.excludeOther && shot.isOther) return false;
       
       // X-coordinate filter
       if (shot.x < filters.xCoordMin || shot.x > filters.xCoordMax) return false;
@@ -236,13 +265,17 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
     return { total, goals, saves, blocks, misses, avgXG, shootingPct };
   }, [filteredData]);
 
-  // Setup scales
+  // 1. UPDATE THE SCALES TO SHOW FULL RINK
   const xScale = useMemo(() => 
-    d3.scaleLinear().domain([0, 100]).range([0, width * 0.9])
+    d3.scaleLinear()
+      .domain([-100, 100])  // Full rink from end to end
+      .range([0, width])
   , [width]);
-  
+
   const yScale = useMemo(() => 
-    d3.scaleLinear().domain([-42.5, 42.5]).range([0, height * 0.9])
+    d3.scaleLinear()
+      .domain([-42.5, 42.5])  // Full rink width (85 feet / 2)
+      .range([height, 0])
   , [height]);
 
   // Create hexbin generator
@@ -287,391 +320,156 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
   useEffect(() => {
     if (!svgRef.current) return;
 
+    d3.select(svgRef.current).selectAll('*').remove();
     const svg = d3.select(svgRef.current);
-    svg.selectAll('*').remove();
-
-    const margin = { top: 20, right: 20, bottom: 20, left: 20 };
-    const g = svg.append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
-
-    const rinkWidth = width - margin.left - margin.right;
-    const rinkHeight = height - margin.top - margin.bottom;
-
-    // Draw rink background
+    const g = svg.append('g');
     const rink = g.append('g').attr('class', 'rink');
-
-    // Ice surface
+    
+    // Rink surface with rounded corners
     rink.append('rect')
-      .attr('width', rinkWidth)
-      .attr('height', rinkHeight)
-      .attr('fill', '#f0f4f8')
-      .attr('stroke', '#cbd5e0')
-      .attr('stroke-width', 2)
-      .attr('rx', 28);
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('width', width)
+      .attr('height', height)
+      .attr('fill', '#f8f9fa')
+      .attr('rx', 28 * (width/900))
+      .attr('ry', 28 * (height/450));
 
-    // Center ice red line (at rink center - left edge of view)
+    // CENTER ICE (x=0)
+    // Red center line
     rink.append('line')
-      .attr('x1', 0)
+      .attr('x1', xScale(0))
       .attr('y1', 0)
-      .attr('x2', 0)
-      .attr('y2', rinkHeight)
+      .attr('x2', xScale(0))
+      .attr('y2', height)
       .attr('stroke', '#dc2626')
       .attr('stroke-width', 4);
 
-    const blueLineX = xScale(25);  // Blue line at x=25
-    rink.append('line')
-      .attr('x1', blueLineX)
-      .attr('y1', 0)
-      .attr('x2', blueLineX)
-      .attr('y2', rinkHeight)
+    // Center ice circle (15 foot radius)
+    rink.append('circle')
+      .attr('cx', xScale(0))
+      .attr('cy', yScale(0))
+      .attr('r', (15 / 85) * height)  // Scale based on rink width
+      .attr('fill', 'none')
       .attr('stroke', '#2563eb')
-      .attr('stroke-width', 4);
+      .attr('stroke-width', 2);
 
-    const goalLineX = xScale(89);  // Goal at x=89
-    rink.append('line')
-      .attr('x1', goalLineX)
-      .attr('y1', 0)
-      .attr('x2', goalLineX)
-      .attr('y2', rinkHeight)
-      .attr('stroke', '#dc2626')
-      .attr('stroke-width', 3);
+    // Center ice dot
+    rink.append('circle')
+      .attr('cx', xScale(0))
+      .attr('cy', yScale(0))
+      .attr('r', 3)
+      .attr('fill', '#2563eb');
 
-    // Goal itself (behind the goal line, in the net)
-    const goalDepth = 4; // 4 feet deep
-    const goalPostDistance = yScale(0) - yScale(3); // 3 feet on each side
-    const goalCenterY = rinkHeight / 2;
-
-    // Goal net (behind goal line)
-    rink.append('path')
-      .attr('d', `
-        M ${goalLineX} ${goalCenterY - goalPostDistance}
-        L ${goalLineX + goalDepth * 2} ${goalCenterY - goalPostDistance}
-        L ${goalLineX + goalDepth * 2} ${goalCenterY + goalPostDistance}
-        L ${goalLineX} ${goalCenterY + goalPostDistance}
-      `)
-      .attr('fill', 'rgba(100, 100, 100, 0.2)')
-      .attr('stroke', '#666')
-      .attr('stroke-width', 1)
-      .attr('stroke-dasharray', '2,1');
-
-    // Goal posts and crossbar
-    rink.append('rect')
-      .attr('x', goalLineX - 1)
-      .attr('y', goalCenterY - goalPostDistance)
-      .attr('width', 2)
-      .attr('height', goalPostDistance * 2)
-      .attr('fill', '#dc2626');
-
-    // Goal post circles (the actual posts)
-    [goalCenterY - goalPostDistance, goalCenterY + goalPostDistance].forEach(y => {
-      rink.append('circle')
-        .attr('cx', goalLineX)
-        .attr('cy', y)
-        .attr('r', 2.5)
-        .attr('fill', '#dc2626')
-        .attr('stroke', '#000')
-        .attr('stroke-width', 0.5);
+    // BLUE LINES (at ±25)
+    [-25, 25].forEach(x => {
+      rink.append('line')
+        .attr('x1', xScale(x))
+        .attr('y1', 0)
+        .attr('x2', xScale(x))
+        .attr('y2', height)
+        .attr('stroke', '#2563eb')
+        .attr('stroke-width', 3);
     });
 
-    
-    // Goal crease - proper semicircle extending left from goal line
-    const creaseRadius = Math.abs(yScale(6) - yScale(0)); // 6 feet in data coordinates
+    // GOAL LINES (at ±89)
+    [-89, 89].forEach(x => {
+      rink.append('line')
+        .attr('x1', xScale(x))
+        .attr('y1', 0)
+        .attr('x2', xScale(x))
+        .attr('y2', height)
+        .attr('stroke', '#dc2626')
+        .attr('stroke-width', 2);
+    });
 
-    // Draw crease as semicircle extending left
-    rink.append('path')
-      .attr('d', `
-        M ${goalLineX} ${goalCenterY - creaseRadius}
-        A ${creaseRadius} ${creaseRadius} 0 1 0 ${goalLineX} ${goalCenterY + creaseRadius}
-        Z
-      `)
-      .attr('fill', 'rgba(219, 234, 254, 0.5)')
-      .attr('stroke', '#3b82f6')
-      .attr('stroke-width', 2);
-    
+    // END BOARDS (at ±100)
+    [-100, 100].forEach(x => {
+      rink.append('line')
+        .attr('x1', xScale(x))
+        .attr('y1', 0)
+        .attr('x2', xScale(x))
+        .attr('y2', height)
+        .attr('stroke', '#333')
+        .attr('stroke-width', 3);
+    });
 
-
-    // Faceoff circles at x=69, y=±22
-    const faceoffCircles = [
-      { x: xScale(69), y: yScale(22) },
-      { x: xScale(69), y: yScale(-22) },
-    ];
-
-    // Draw faceoff circles
-    faceoffCircles.forEach(pos => {
-      // Outer circle
+    // FACEOFF CIRCLES (4 total: ±69, ±22)
+    const circleRadius = (15 / 85) * height;
+    [
+      { x: -69, y: 22 },   // Left offensive, top
+      { x: -69, y: -22 },  // Left offensive, bottom
+      { x: 69, y: 22 },    // Right offensive, top
+      { x: 69, y: -22 }    // Right offensive, bottom
+    ].forEach(pos => {
+      // Circle
       rink.append('circle')
-        .attr('cx', pos.x)
-        .attr('cy', pos.y)
-        .attr('r', 30)
+        .attr('cx', xScale(pos.x))
+        .attr('cy', yScale(pos.y))
+        .attr('r', circleRadius)
         .attr('fill', 'none')
         .attr('stroke', '#dc2626')
         .attr('stroke-width', 2);
-      
-      // Inner dot - INCREASED SIZE 4X
-      rink.append('circle')
-        .attr('cx', pos.x)
-        .attr('cy', pos.y)
-        .attr('r', 4)  // Changed from 1 to 4
-        .attr('fill', '#dc2626');
-      
-      // Hash marks
-      const hashLength = 4;
-      const hashOffset = 35;
-      
-      // Top and bottom hash marks
-      [-1, 1].forEach(dir => {
-        rink.append('line')
-          .attr('x1', pos.x - hashLength)
-          .attr('x2', pos.x + hashLength)
-          .attr('y1', pos.y + (hashOffset * dir))
-          .attr('y2', pos.y + (hashOffset * dir))
-          .attr('stroke', '#dc2626')
-          .attr('stroke-width', 2);
-      });
-      
-      // Left and right hash marks  
-      [-1, 1].forEach(dir => {
-        rink.append('line')
-          .attr('x1', pos.x + (hashOffset * dir))
-          .attr('x2', pos.x + (hashOffset * dir))
-          .attr('y1', pos.y - hashLength)
-          .attr('y2', pos.y + hashLength)
-          .attr('stroke', '#dc2626')
-          .attr('stroke-width', 2);
-      });
-    });
 
-    // Neutral zone dots at x=20, y=±22
-    const neutralDots = [
-      { x: xScale(20), y: yScale(22) },
-      { x: xScale(20), y: yScale(-22) },
-    ];
-
-    neutralDots.forEach(pos => {
+      // Dot
       rink.append('circle')
-        .attr('cx', pos.x)
-        .attr('cy', pos.y)
-        .attr('r', 4)  // INCREASED SIZE 4X
+        .attr('cx', xScale(pos.x))
+        .attr('cy', yScale(pos.y))
+        .attr('r', 3)
         .attr('fill', '#dc2626');
     });
 
-    {/* Game Situation Filters */}
-    <div className="border-t pt-4 mt-4">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-        Game Situations
-      </label>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <label className="flex items-center">
-          <input
-            type="checkbox"
-            checked={filters.emptyNet}
-            onChange={(e) => setFilters(prev => ({ ...prev, emptyNet: e.target.checked }))}
-            className="mr-2"
-          />
-          <span className="text-sm text-gray-700 dark:text-gray-300">Empty Net</span>
-        </label>
-        
-        <label className="flex items-center">
-          <input
-            type="checkbox"
-            checked={filters.reboundGoals}
-            onChange={(e) => setFilters(prev => ({ ...prev, reboundGoals: e.target.checked }))}
-            className="mr-2"
-          />
-          <span className="text-sm text-gray-700 dark:text-gray-300">Rebound Goals</span>
-        </label>
-        
-        <label className="flex items-center">
-          <input
-            type="checkbox"
-            checked={filters.powerPlay}
-            onChange={(e) => setFilters(prev => ({ ...prev, powerPlay: e.target.checked }))}
-            className="mr-2"
-          />
-          <span className="text-sm text-gray-700 dark:text-gray-300">Power Play</span>
-        </label>
-        
-        <label className="flex items-center">
-          <input
-            type="checkbox"
-            checked={filters.penaltyKill}
-            onChange={(e) => setFilters(prev => ({ ...prev, penaltyKill: e.target.checked }))}
-            className="mr-2"
-          />
-          <span className="text-sm text-gray-700 dark:text-gray-300">Penalty Kill</span>
-        </label>
-        
-        <label className="flex items-center">
-          <input
-            type="checkbox"
-            checked={filters.evenStrength}
-            onChange={(e) => setFilters(prev => ({ ...prev, evenStrength: e.target.checked }))}
-            className="mr-2"
-          />
-          <span className="text-sm text-gray-700 dark:text-gray-300">Even Strength</span>
-        </label>
-        
-        <label className="flex items-center">
-          <input
-            type="checkbox"
-            checked={filters.shootout}
-            onChange={(e) => setFilters(prev => ({ ...prev, shootout: e.target.checked }))}
-            className="mr-2"
-          />
-          <span className="text-sm text-gray-700 dark:text-gray-300">Shootout</span>
-        </label>
-      </div>
-    </div>
+    // NEUTRAL ZONE DOTS (4 total: ±20, ±22)
+    [
+      { x: -20, y: 22 },
+      { x: -20, y: -22 },
+      { x: 20, y: 22 },
+      { x: 20, y: -22 }
+    ].forEach(pos => {
+      rink.append('circle')
+        .attr('cx', xScale(pos.x))
+        .attr('cy', yScale(pos.y))
+        .attr('r', 3)
+        .attr('fill', '#dc2626');
+    });
 
-    {/* Shot Location Filter */}
-    <div className="border-t pt-4 mt-4">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-        Shot Location Zone
-      </label>
-      <div className="flex gap-2 flex-wrap mb-2">
-        <button
-          onClick={() => setFilters(prev => ({ ...prev, xCoordMin: 0, xCoordMax: 100 }))}
-          className={`px-3 py-1 text-xs rounded ${
-            filters.xCoordMin === 0 && filters.xCoordMax === 100
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-          }`}
-        >
-          All Zones
-        </button>
-        <button
-          onClick={() => setFilters(prev => ({ ...prev, xCoordMin: 0, xCoordMax: 25 }))}
-          className={`px-3 py-1 text-xs rounded ${
-            filters.xCoordMin === 0 && filters.xCoordMax === 25
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-          }`}
-        >
-          Beyond Blue Line
-        </button>
-        <button
-          onClick={() => setFilters(prev => ({ ...prev, xCoordMin: 25, xCoordMax: 69 }))}
-          className={`px-3 py-1 text-xs rounded ${
-            filters.xCoordMin === 25 && filters.xCoordMax === 69
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-          }`}
-        >
-          High Slot
-        </button>
-        <button
-          onClick={() => setFilters(prev => ({ ...prev, xCoordMin: 69, xCoordMax: 89 }))}
-          className={`px-3 py-1 text-xs rounded ${
-            filters.xCoordMin === 69 && filters.xCoordMax === 89
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-          }`}
-        >
-          Low Slot
-        </button>
-        <button
-          onClick={() => setFilters(prev => ({ ...prev, xCoordMin: 89, xCoordMax: 100 }))}
-          className={`px-3 py-1 text-xs rounded ${
-            filters.xCoordMin === 89 && filters.xCoordMax === 100
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-          }`}
-        >
-          Crease Area
-        </button>
-      </div>
-      <div className="text-xs text-gray-500 dark:text-gray-400">
-        Current range: x={filters.xCoordMin} to x={filters.xCoordMax}
-      </div>
-    </div>
+    // GOALS AND CREASES (at both ends)
+    [-89, 89].forEach(goalX => {
+      const isRightGoal = goalX > 0;
+      
+      // Goal crease (8 foot radius D-shape)
+      const creaseRadius = (8 / 85) * height;
+      const creasePath = d3.path();
+      
+      if (isRightGoal) {
+        // Right goal - crease extends right (toward end boards)
+        creasePath.moveTo(xScale(goalX), yScale(-4));
+        creasePath.arc(xScale(goalX), yScale(0), creaseRadius, -Math.PI/2, Math.PI/2, true);
+        creasePath.closePath();
+      } else {
+        // Left goal - crease extends left (toward end boards)
+        creasePath.moveTo(xScale(goalX), yScale(-4));
+        creasePath.arc(xScale(goalX), yScale(0), creaseRadius, -Math.PI/2, Math.PI/2, false);
+        creasePath.closePath();
+      }
+      
+      rink.append('path')
+        .attr('d', creasePath.toString())
+        .attr('fill', 'rgba(178, 220, 248, 0.5)')
+        .attr('stroke', '#dc2626')
+        .attr('stroke-width', 2);
 
+      // Goal posts (6 feet wide)
+      const goalWidth = Math.abs(yScale(3) - yScale(-3));
+      rink.append('rect')
+        .attr('x', xScale(goalX) - 2)
+        .attr('y', yScale(0) - goalWidth/2)
+        .attr('width', 4)
+        .attr('height', goalWidth)
+        .attr('fill', '#dc2626');
+    });
+    
 
-    // Add coordinate reference system for debugging
-    const debugMode = false; // Set to false to hide these helpers
-
-    if (debugMode) {
-      // Add X-axis coordinate labels
-      const xCoordLabels = [0, 25, 50, 75, 100];
-      xCoordLabels.forEach(coord => {
-        const xPos = xScale(coord);
-        
-        // Vertical reference line
-        rink.append('line')
-          .attr('x1', xPos)
-          .attr('y1', 0)
-          .attr('x2', xPos)
-          .attr('y2', rinkHeight)
-          .attr('stroke', '#10b981')
-          .attr('stroke-width', 0.5)
-          .attr('stroke-dasharray', '2,2')
-          .attr('opacity', 0.3);
-        
-        // Coordinate label
-        rink.append('text')
-          .attr('x', xPos)
-          .attr('y', -5)
-          .attr('text-anchor', 'middle')
-          .attr('font-size', '10px')
-          .attr('fill', '#10b981')
-          .text(`x=${coord}`);
-      });
-      
-      // Add Y-axis coordinate labels
-      const yCoordLabels = [-40, -20, 0, 20, 40];
-      yCoordLabels.forEach(coord => {
-        const yPos = yScale(coord);
-        
-        // Horizontal reference line
-        rink.append('line')
-          .attr('x1', 0)
-          .attr('y1', yPos)
-          .attr('x2', rinkWidth)
-          .attr('y2', yPos)
-          .attr('stroke', '#10b981')
-          .attr('stroke-width', 0.5)
-          .attr('stroke-dasharray', '2,2')
-          .attr('opacity', 0.3);
-        
-        // Coordinate label
-        rink.append('text')
-          .attr('x', -25)
-          .attr('y', yPos + 3)
-          .attr('text-anchor', 'middle')
-          .attr('font-size', '10px')
-          .attr('fill', '#10b981')
-          .text(`y=${coord}`);
-      });
-      
-      // Show actual positions of key rink features
-      const rinkInfo = g.append('g').attr('class', 'rink-info');
-      
-      // Info box
-      rinkInfo.append('rect')
-        .attr('x', 10)
-        .attr('y', rinkHeight - 80)
-        .attr('width', 200)
-        .attr('height', 70)
-        .attr('fill', 'rgba(255, 255, 255, 0.9)')
-        .attr('stroke', '#666')
-        .attr('stroke-width', 1);
-      
-      const infoText = [
-        `Red line: x=0`,
-        `Neutral dots: x=${(0.20 * 100).toFixed(0)}`,
-        `Blue line: x=${(0.40 * 100).toFixed(0)}`,
-        `Off. zone circles: x=${(0.69 * 100).toFixed(0)}`,
-        `Goal line: x=${(0.89 * 100).toFixed(0)}`
-      ];
-      
-      infoText.forEach((text, i) => {
-        rinkInfo.append('text')
-          .attr('x', 15)
-          .attr('y', rinkHeight - 60 + (i * 12))
-          .attr('font-size', '10px')
-          .attr('fill', '#333')
-          .text(text);
-      });
-    }
 
     // Draw hexagons
     if (filters.showHexagons && hexagonData.length > 0) {
@@ -798,9 +596,9 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
 };
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full">
       {/* Filter Controls */}
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-4">
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-4 mb-4">
         {/* Shot Outcome Filters */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -829,26 +627,32 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
           </div>
         </div>
 
-        {/* Team Filter */}
+        {/* Team Filter - NEW HOME/AWAY CHECKBOXES */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Teams
+              Team Selection
             </label>
-            <select
-              multiple
-              value={filters.teams}
-              onChange={(e) => {
-                const selected = Array.from(e.target.selectedOptions, option => option.value);
-                setFilters(prev => ({ ...prev, teams: selected }));
-              }}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              size={3}
-            >
-              {filterOptions.teams.map(team => (
-                <option key={team} value={team}>{team}</option>
-              ))}
-            </select>
+            <div className="space-y-2">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={filters.showHome}
+                  onChange={(e) => setFilters(prev => ({ ...prev, showHome: e.target.checked }))}
+                  className="mr-2"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Show Home Team Shots</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={filters.showAway}
+                  onChange={(e) => setFilters(prev => ({ ...prev, showAway: e.target.checked }))}
+                  className="mr-2"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Show Away Team Shots</span>
+              </label>
+            </div>
           </div>
 
           {/* Period Filter */}
@@ -1003,6 +807,217 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
             </div>
           </div>
 
+        {/* Shot Type Filter - NEW SECTION */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Shot Types
+            </label>
+            <select
+              multiple
+              value={filters.shotTypes}
+              onChange={(e) => {
+                const selected = Array.from(e.target.selectedOptions, option => option.value);
+                setFilters(prev => ({ ...prev, shotTypes: selected }));
+              }}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              size={4}
+            >
+              {filterOptions.shotTypes.map(shotType => (
+                <option key={shotType} value={shotType}>{shotType}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Hold Ctrl/Cmd to select multiple
+            </p>
+          </div>
+        </div>
+
+        {/* Game Situation Filters - EXCLUSION */}
+        <div className="border-t pt-4 mt-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Exclude Game Situations
+          </label>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+            Check to hide these types of shots from the visualization
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={filters.excludeEmptyNet}
+                onChange={(e) => setFilters(prev => ({ ...prev, excludeEmptyNet: e.target.checked }))}
+                className="mr-2"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">Hide Empty Net</span>
+            </label>
+            
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={filters.excludeRebounds}
+                onChange={(e) => setFilters(prev => ({ ...prev, excludeRebounds: e.target.checked }))}
+                className="mr-2"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">Hide Rebounds</span>
+            </label>
+            
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={filters.excludePowerPlay}
+                onChange={(e) => setFilters(prev => ({ ...prev, excludePowerPlay: e.target.checked }))}
+                className="mr-2"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">Hide Power Play</span>
+            </label>
+            
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={filters.excludePenaltyKill}
+                onChange={(e) => setFilters(prev => ({ ...prev, excludePenaltyKill: e.target.checked }))}
+                className="mr-2"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">Hide Penalty Kill</span>
+            </label>
+            
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={filters.excludeEvenStrength}
+                onChange={(e) => setFilters(prev => ({ ...prev, excludeEvenStrength: e.target.checked }))}
+                className="mr-2"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">Hide Even Strength (5v5)</span>
+            </label>
+            
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={filters.excludeShootout}
+                onChange={(e) => setFilters(prev => ({ ...prev, excludeShootout: e.target.checked }))}
+                className="mr-2"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">Hide Shootout</span>
+            </label>
+            
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={filters.excludeOther}
+                onChange={(e) => setFilters(prev => ({ ...prev, excludeOther: e.target.checked }))}
+                className="mr-2"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">Hide Other</span>
+            </label>
+          </div>
+          
+          {/* Add quick action buttons */}
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={() => setFilters(prev => ({
+                ...prev,
+                excludeEmptyNet: false,
+                excludeRebounds: false,
+                excludePowerPlay: false,
+                excludePenaltyKill: false,
+                excludeEvenStrength: false,
+                excludeShootout: false,
+                excludeOther: false,
+              }))}
+              className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+            >
+              Show All Situations
+            </button>
+            <button
+              onClick={() => setFilters(prev => ({
+                ...prev,
+                excludeEmptyNet: true,
+                excludeRebounds: false,
+                excludePowerPlay: true,
+                excludePenaltyKill: true,
+                excludeEvenStrength: true,
+                excludeShootout: true,
+                excludeOther: true,
+              }))}
+              className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+            >
+              Rebounds Only
+            </button>
+            <button
+              onClick={() => setFilters(prev => ({
+                ...prev,
+                excludeEmptyNet: true,
+                excludeRebounds: true,
+                excludePowerPlay: true,
+                excludePenaltyKill: true,
+                excludeEvenStrength: false,
+                excludeShootout: true,
+                excludeOther: true,
+              }))}
+              className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+            >
+              Even Strength Only
+            </button>
+          </div>
+        </div>
+
+        {/* Shot Location Filter */}
+        <div className="border-t pt-4 mt-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Shot Location Zone
+          </label>
+          <div className="flex gap-2 flex-wrap mb-2">
+            <button
+              onClick={() => setFilters(prev => ({ ...prev, xCoordMin: -100, xCoordMax: 100 }))}
+              className={`px-3 py-1 text-xs rounded ${
+                filters.xCoordMin === -100 && filters.xCoordMax === 100
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              Full Rink
+            </button>
+            <button
+              onClick={() => setFilters(prev => ({ ...prev, xCoordMin: -100, xCoordMax: -25 }))}
+              className={`px-3 py-1 text-xs rounded ${
+                filters.xCoordMin === -100 && filters.xCoordMax === -25
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              Left Defensive Zone
+            </button>
+            <button
+              onClick={() => setFilters(prev => ({ ...prev, xCoordMin: -25, xCoordMax: 25 }))}
+              className={`px-3 py-1 text-xs rounded ${
+                filters.xCoordMin === -25 && filters.xCoordMax === 25
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              Neutral Zone
+            </button>
+            <button
+              onClick={() => setFilters(prev => ({ ...prev, xCoordMin: 25, xCoordMax: 100 }))}
+              className={`px-3 py-1 text-xs rounded ${
+                filters.xCoordMin === 25 && filters.xCoordMax === 100
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              Right Offensive Zone
+            </button>
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Goal lines are at x=-89 (left) and x=89 (right)
+          </div>
+        </div>
+
+
+
+
         {/* Hexagon Size (when heat map is enabled) */}
         {filters.showHexagons && (
           <div>
@@ -1029,7 +1044,7 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
       </div>
 
       {/* Statistics Bar */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow mb-4"> 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</div>
@@ -1063,24 +1078,25 @@ const InteractiveHockeyHeatMap: React.FC<InteractiveHockeyHeatMapProps> = ({
         </div>
 
       {/* SVG Visualization */}
-      <div className="bg-white rounded-lg shadow-lg p-2">
-        <svg
-          ref={svgRef}
-          width={width}
-          height={height}
-          className="w-full"
-          style={{ maxWidth: width }}
-        />
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="p-2">  
+          <svg 
+            ref={svgRef} 
+            width={width} 
+            height={height}
+            className="block mx-auto"  
+            style={{ maxWidth: '100%', height: 'auto' }} 
+          />
+        </div>
       </div>
 
       {/* Tooltip */}
-      {tooltip.visible && tooltip.data && (
+      {tooltip.visible && (
         <div
-          className="fixed bg-gray-900 text-white rounded-lg shadow-xl p-3 z-50 pointer-events-none"
+          className="absolute bg-gray-900 text-white text-xs rounded px-2 py-1 pointer-events-none z-50"
           style={{
             left: tooltip.x,
             top: tooltip.y,
-            transform: 'translate(-50%, -100%)',
           }}
         >
           {tooltip.data.type === 'hexagon' ? (
